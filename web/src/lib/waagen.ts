@@ -81,10 +81,12 @@ export async function standGtsTexte(bienenstandIds: string[]): Promise<Map<strin
 export type VerlaufZeile = {
   t: number;
   gewicht: number | null;
+  aenderung: number | null;
+  // Gesamtänderung des Tages, zu dem diese Zeile gehört.
+  tagesAenderung: number | null;
   temperatur: number | null;
   feuchte: number | null;
   regen: number | null;
-  wind: number | null;
 };
 
 function ausduennen<T>(liste: T[]): T[] {
@@ -97,15 +99,29 @@ export async function waagenVerlaufLaden(waageId: string, jetzt = new Date()) {
   const seit = new Date(jetzt.getTime() - MESSWERTE_TAGE * 24 * 60 * 60 * 1000);
   const [messwerte, tageswerte] = await Promise.all([
     prisma.waagenMesswert.findMany({ where: { waageId, zeitpunkt: { gte: seit } }, orderBy: { zeitpunkt: "asc" } }),
-    prisma.waagenTageswert.findMany({ where: { waageId, tag: { gte: seit } }, orderBy: { tag: "desc" } }),
+    // Ein Tag mehr: der erste Tag im Zeitraum ist bei den Messwerten nur halb.
+    prisma.waagenTageswert.findMany({
+      where: { waageId, tag: { gte: new Date(seit.getTime() - 24 * 60 * 60 * 1000) } },
+      orderBy: { tag: "desc" },
+    }),
   ]);
+
+  // Tagesänderung von Wolf, sonst (noch keine Tageszeile) die Summe der Stunden.
+  const wolfTage = new Map(tageswerte.map((t) => [t.tag.toISOString().slice(0, 10), t.ertragKg]));
+  const summen = new Map<string, number>();
+  for (const m of messwerte) {
+    if (m.ertragKg === null) continue;
+    const tag = tagInBerlin(m.zeitpunkt);
+    summen.set(tag, (summen.get(tag) ?? 0) + m.ertragKg);
+  }
   const zeilen: VerlaufZeile[] = ausduennen(messwerte).map((m) => ({
     t: m.zeitpunkt.getTime(),
     gewicht: m.gewichtKg,
+    aenderung: m.ertragKg,
+    tagesAenderung: wolfTage.get(tagInBerlin(m.zeitpunkt)) ?? summen.get(tagInBerlin(m.zeitpunkt)) ?? null,
     temperatur: m.temperaturC,
     feuchte: m.feuchteProzent,
     regen: m.regenMm,
-    wind: m.windKmh,
   }));
   const mitGewicht = messwerte.filter((m) => m.gewichtKg !== null);
   const letzter = mitGewicht.at(-1) ?? null;

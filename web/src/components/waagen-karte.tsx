@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui";
 import { WaagenDiagramm } from "@/components/waagen-diagramm";
-import { MESSWERTE_TAGE, waagenVerlaufLaden } from "@/lib/waagen";
+import { waagenVerlaufLaden } from "@/lib/waagen";
 
 function zahl(wert: number | null | undefined, stellen = 1) {
   if (wert === null || wert === undefined) return "–";
@@ -36,7 +36,7 @@ export async function WaagenKarte({ waage }: { waage: { id: string; kennung: str
 
       {stand && (
         <div className="flex flex-col gap-4">
-          <WaagenDiagramm titel={`Verlauf, letzte ${MESSWERTE_TAGE} Tage`} zeilen={verlauf.zeilen} />
+          <WaagenDiagramm titel="Verlauf" zeilen={verlauf.zeilen} />
 
           {verlauf.tageswerte.length > 0 && (
             <details>
