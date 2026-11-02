@@ -843,7 +843,7 @@ export default async function BienenstandDetailPage({
         massnahmeKey={massnahmenAnzahl}
       />
 
-      {!aus.includes("waagen") && <GtsKarte bienenstandId={bienenstand.id} auswahl />}
+      {!aus.includes("waagen") && <GtsKarte bienenstandId={bienenstand.id} />}
 
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">

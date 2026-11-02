@@ -1,12 +1,11 @@
-import { Button, Card, Select } from "@/components/ui";
+import { Card } from "@/components/ui";
 import { GTS_MARKE } from "@/lib/gts";
 import { standGtsLaden, wetterWaageLaden } from "@/lib/waagen";
-import { wetterWaageWaehlen } from "@/lib/waagen-actions";
 
 // Grünlandtemperatursumme eines Stands. Grundlage sind die Messungen der Waage,
-// Tage ohne Messung kommen vom Wetterdienst. Stehen mehrere Waagen am Stand,
-// lässt sich wählen, wessen Daten zählen. Ohne Daten erscheint nichts.
-export async function GtsKarte({ bienenstandId, auswahl = false }: { bienenstandId: string; auswahl?: boolean }) {
+// Tage ohne Messung kommen vom Wetterdienst. Stehen mehrere Waagen am Stand, wird
+// die maßgebliche beim Bearbeiten des Stands gewählt. Ohne Daten erscheint nichts.
+export async function GtsKarte({ bienenstandId }: { bienenstandId: string }) {
   const [gts, { waagen }] = await Promise.all([standGtsLaden(bienenstandId), wetterWaageLaden(bienenstandId)]);
   if (!gts.letzterTag && waagen.length === 0) return null;
 
@@ -46,20 +45,6 @@ export async function GtsKarte({ bienenstandId, auswahl = false }: { bienenstand
         </>
       ) : (
         <p className="mt-1 text-sm text-muted">Noch keine Tageswerte abgerufen.</p>
-      )}
-
-      {auswahl && waagen.length > 1 && (
-        <form action={wetterWaageWaehlen.bind(null, bienenstandId)} className="mt-3 flex flex-wrap items-center gap-2">
-          <Select name="waageId" defaultValue={gts.waageId ?? undefined} aria-label="Waage für die Wetterdaten" className="w-auto">
-            {waagen.map((waage) => (
-              <option key={waage.id} value={waage.id}>
-                {waage.name || waage.kennung}
-                {waage.volk ? ` (${waage.volk.name})` : ""}
-              </option>
-            ))}
-          </Select>
-          <Button type="submit" variant="secondary">Übernehmen</Button>
-        </form>
       )}
     </Card>
   );

@@ -83,12 +83,3 @@ export async function waageLoeschen(waageId: string) {
   await prisma.waage.delete({ where: { id: waageId } });
   neuZeichnen();
 }
-
-export async function wetterWaageWaehlen(bienenstandId: string, formData: FormData) {
-  const waageId = String(formData.get("waageId") ?? "");
-  const waage = await prisma.waage.findFirst({ where: { id: waageId, volk: { bienenstandId } }, select: { id: true } });
-  if (!waage) return;
-  await prisma.bienenstand.update({ where: { id: bienenstandId }, data: { wetterWaageId: waage.id } });
-  revalidatePath(`/bienenstaende/${bienenstandId}`);
-  revalidatePath("/waagen");
-}

@@ -6,7 +6,7 @@ import { fuettererAktionAusFormular } from "@/lib/fuetterer";
 import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { volkWaageSetzen } from "@/lib/waagen";
+import { standWetterWaagePruefen, volkWaageSetzen } from "@/lib/waagen";
 import { heuteAlsInputWert } from "@/lib/datum";
 import { cookies } from "next/headers";
 import { basisPrisma, prisma } from "@/lib/prisma";
@@ -353,11 +353,16 @@ export async function bienenstandAktualisieren(
       notizen: textOderUndefined(formData.get("notizen")),
       standtyp: standtypAusFormular(formData),
       ...fotoFelder,
+      // Das Feld gibt es nur, wenn mehrere Waagen am Stand stehen.
+      ...(formData.has("wetterWaageId")
+        ? { wetterWaageId: await standWetterWaagePruefen(bienenstandId, String(formData.get("wetterWaageId"))) }
+        : {}),
     },
   });
 
   revalidatePath("/");
   revalidatePath(`/bienenstaende/${bienenstandId}`);
+  revalidatePath("/waagen");
   redirect(`/bienenstaende/${bienenstandId}`);
 }
 

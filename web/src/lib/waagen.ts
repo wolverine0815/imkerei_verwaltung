@@ -39,6 +39,13 @@ export type StandGts = GtsErgebnis & {
   jahr: number;
 };
 
+// Für das Formular "Stand bearbeiten": nur eine Waage, die dort steht; leer = automatisch.
+export async function standWetterWaagePruefen(bienenstandId: string, waageId: string): Promise<string | null> {
+  if (!waageId) return null;
+  const waage = await prisma.waage.findFirst({ where: { id: waageId, volk: { bienenstandId } }, select: { id: true } });
+  return waage?.id ?? null;
+}
+
 // Die Waage, deren Wetterdaten für den Stand zählen: die gewählte, solange sie
 // noch dort steht, sonst die zuerst angelegte.
 export async function wetterWaageLaden(bienenstandId: string) {
