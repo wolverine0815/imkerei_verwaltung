@@ -68,6 +68,7 @@ async function messwerteSpeichern(waageId: string, punkte: WolfPunkt[], von: Dat
         waageId,
         zeitpunkt: p.zeitpunkt,
         gewichtKg: p.gewichtKg,
+        ertragKg: p.ertragKg,
         temperaturC: p.temperaturC,
         feuchteProzent: p.feuchteProzent,
         regenMm: p.regenMm,
@@ -129,7 +130,11 @@ async function tageHolen(sitzung: WolfSitzung, kennung: string, abTag: string, j
 }
 
 async function waageAbrufen(sitzung: WolfSitzung, waage: { id: string; kennung: string }, jetzt: Date) {
-  const hatMesswerte = await prisma.waagenMesswert.findFirst({ where: { waageId: waage.id }, select: { waageId: true } });
+  // Zeilen von vor der Spalte ertragKg zählen nicht, die 14 Tage kommen dann neu.
+  const hatMesswerte = await prisma.waagenMesswert.findFirst({
+    where: { waageId: waage.id, ertragKg: { not: null } },
+    select: { waageId: true },
+  });
   const vonStunden = new Date(jetzt.getTime() - (hatMesswerte ? NACHLADEN_TAGE : MESSWERTE_TAGE) * TAG_MS);
   const stunden = wolfReihenLesen(await wolfDatenHolen(sitzung, wolfMessAdresse(waage.kennung, "hour", vonStunden, jetzt)));
   spur(`Messwerte speichern (${stunden.length})`);

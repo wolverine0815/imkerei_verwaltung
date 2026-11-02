@@ -1713,6 +1713,7 @@ model WaagenMesswert {
   waage          Waage    @relation(fields: [waageId], references: [id], onDelete: Cascade)
   zeitpunkt      DateTime
   gewichtKg      Float?
+  ertragKg       Float?
   temperaturC    Float?
   feuchteProzent Float?
   regenMm        Float?
