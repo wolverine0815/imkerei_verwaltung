@@ -36,8 +36,9 @@ type StandVolk = {
 // Symbol über dem Wort wie bei den Knöpfen der Volkskachel - so passt
 // "Durchsicht erfassen" auch am Handy in eine Zeile. Beide Knöpfe gleich
 // breit unter dem Kopfbanner des Stands.
+// Schrift und Rand schrumpfen auf schmalen Handys mit, sonst bricht "Behandlung" um.
 const KNOPF =
-  "flex flex-col items-center justify-center gap-1 rounded-xl border border-border bg-card px-3 py-3 text-sm font-medium shadow-md transition-colors hover:border-accent hover:text-accent";
+  "flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl border border-border bg-card px-1.5 py-3 text-center text-[clamp(0.75rem,3.4vw,0.875rem)] font-medium sm:px-3 shadow-md transition-colors hover:border-accent hover:text-accent";
 
 // Rahmen für beide Popups: erst die Völker wählen, dann - auf einer zweiten
 // Seite im selben Dialog - das Formular. Das Formular bleibt dabei die ganze
@@ -531,7 +532,7 @@ export function StandSammelAktionen({
       {behandlungKnopf && (
         <Link href={`/behandlungen/neu?volk=${einzelVolk.id}`} className={KNOPF}>
           <IconBehandlung className="h-5 w-5 shrink-0 text-accent" />
-          Behandlung
+          {"Behand\u00ADlung"}
         </Link>
       )}
     </div>

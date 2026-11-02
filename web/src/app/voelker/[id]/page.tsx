@@ -647,7 +647,7 @@ export default async function VolkDetailPage({
         <div className="grid grid-flow-col auto-cols-fr gap-1.5">
           <Link href={`/voelker/${volk.id}/bearbeiten`} className={AKTION_KACHEL}>
             <IconBearbeiten className={AKTION_SYMBOL} />
-            Bearbeiten
+            {"Bearbei\u00ADten"}
           </Link>
           <VolkUmzugDialog
             key={volk.eintraege.length}
