@@ -30,7 +30,7 @@ export async function volkWaageSetzen(volkId: string, waageId: string) {
   if (waageId) await prisma.waage.update({ where: { id: waageId }, data: { volkId } });
 }
 
-export type StandGts =GtsErgebnis & { waageName: string; waageId: string; jahr: number };
+export type StandGts = GtsErgebnis & { waageName: string; waageId: string; jahr: number };
 
 // Die Waage, deren Wetterdaten für den Stand zählen: die gewählte, solange sie
 // noch dort steht, sonst die zuerst angelegte.
@@ -46,22 +46,39 @@ export async function wetterWaageLaden(bienenstandId: string) {
   return { gewaehlt: waagen.find((w) => w.id === stand?.wetterWaageId) ?? waagen[0] ?? null, waagen };
 }
 
-export async function standGtsLaden(bienenstandId: string, jetzt = new Date()): Promise<StandGts | null> {
-  const { gewaehlt } = await wetterWaageLaden(bienenstandId);
-  if (!gewaehlt) return null;
+// Nur aus den eigenen Tageswerten der Waage: Fehlt ihr ein Tag, meldet die Karte das.
+async function waageGtsLaden(waage: { id: string; kennung: string; name: string | null }, jetzt: Date): Promise<StandGts> {
   const heute = tagInBerlin(jetzt);
   const jahr = Number(heute.slice(0, 4));
   const zeilen = await prisma.waagenTageswert.findMany({
-    where: { waageId: gewaehlt.id, tag: { gte: new Date(Date.UTC(jahr, 0, 1)) } },
+    where: { waageId: waage.id, tag: { gte: new Date(Date.UTC(jahr, 0, 1)) } },
     select: { tag: true, temperaturMittelC: true },
   });
   const tage = zeilen.map((z) => ({ tag: z.tag.toISOString().slice(0, 10), mittelC: z.temperaturMittelC }));
   return {
     ...gtsBerechnen(tage, jahr, heute),
-    waageName: gewaehlt.name || gewaehlt.kennung,
-    waageId: gewaehlt.id,
+    waageName: waage.name || waage.kennung,
+    waageId: waage.id,
     jahr,
   };
+}
+
+export async function standGtsLaden(bienenstandId: string, jetzt = new Date()): Promise<StandGts | null> {
+  const { gewaehlt } = await wetterWaageLaden(bienenstandId);
+  return gewaehlt ? waageGtsLaden(gewaehlt, jetzt) : null;
+}
+
+function gtsText(gts: StandGts) {
+  return `${gts.summe.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} °C`;
+}
+
+// Für den Kopf der Stockansicht: die Waage des Volks; ohne eigene Waage die des Stands.
+export async function volkGtsText(
+  waage: { id: string; kennung: string; name: string | null } | null,
+  bienenstandId: string,
+): Promise<string | null> {
+  const gts = waage ? await waageGtsLaden(waage, new Date()) : await standGtsLaden(bienenstandId);
+  return gts?.letzterTag ? gtsText(gts) : null;
 }
 
 // Für die Standübersicht: nur Stände, für die es schon Tageswerte gibt.
@@ -70,9 +87,7 @@ export async function standGtsTexte(bienenstandIds: string[]): Promise<Map<strin
   await Promise.all(
     bienenstandIds.map(async (id) => {
       const gts = await standGtsLaden(id);
-      if (gts?.letzterTag) {
-        texte.set(id, `${gts.summe.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} °C`);
-      }
+      if (gts?.letzterTag) texte.set(id, gtsText(gts));
     }),
   );
   return texte;
