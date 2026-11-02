@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { knopfKlassen } from "@/components/ui";
-import { runderSchritt, zahl, FLAECHE } from "@/components/waagen-diagramm";
+import { LegendenKnopf, runderSchritt, useLegende, zahl, FLAECHE } from "@/components/waagen-diagramm";
 
 // Gewicht mehrerer Waagen in einem Diagramm, aus den dauerhaft gespeicherten
 // Tageswerten. Die Farbe hängt an der Waage, nicht an der Position in der
@@ -43,6 +43,7 @@ function monatsWechsel(von: number, bis: number) {
 export function WaagenGewichtsvergleich({ waagen }: { waagen: VergleichsWaage[] }) {
   const [tage, setTage] = useState<number | null>(null);
   const [maus, setMaus] = useState<{ x: number; y: number } | null>(null);
+  const legende = useLegende();
 
   const alleZeiten = useMemo(() => waagen.flatMap((w) => w.tage.map((p) => p.t)), [waagen]);
   const bis = alleZeiten.length ? Math.max(...alleZeiten) : 0;
@@ -103,7 +104,8 @@ export function WaagenGewichtsvergleich({ waagen }: { waagen: VergleichsWaage[] 
     <figure>
       <figcaption className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm font-semibold">Gewichtsvergleich</span>
-        <span className="flex flex-wrap gap-1.5">
+        <span className="flex flex-wrap items-center gap-1.5">
+          <LegendenKnopf an={legende.an} umschalten={legende.umschalten} />
           {ZEITRAEUME.map((z) => (
             <button
               key={z.label}
@@ -156,7 +158,7 @@ export function WaagenGewichtsvergleich({ waagen }: { waagen: VergleichsWaage[] 
             {maus && <line x1={x(aktivT)} x2={x(aktivT)} y1="0" y2={HOEHE} stroke="var(--color-muted)" strokeWidth="1" vectorEffect="non-scaling-stroke" />}
           </svg>
 
-          <dl
+          {legende.an && <dl
             className="pointer-events-none absolute z-10 grid grid-cols-[auto_auto] gap-x-3 rounded-md border border-border bg-card/90 px-2.5 py-1.5 text-xs shadow-md"
             style={{ [maus && maus.x > 0.5 ? "left" : "right"]: 6, [maus && maus.y < 0.5 ? "bottom" : "top"]: 6 }}
           >
@@ -170,7 +172,7 @@ export function WaagenGewichtsvergleich({ waagen }: { waagen: VergleichsWaage[] 
                 <dd className="text-right font-medium tabular-nums">{zahl(r.wert, 2)} kg</dd>
               </div>
             ))}
-          </dl>
+          </dl>}
         </div>
 
         <div className="relative col-start-2 mt-1 h-4 overflow-hidden text-[11px] text-muted">

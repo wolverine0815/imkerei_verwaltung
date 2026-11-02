@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { IconAuge } from "@/components/icons";
 import { knopfKlassen } from "@/components/ui";
 import type { VerlaufZeile } from "@/lib/waagen";
 
@@ -12,7 +13,8 @@ import type { VerlaufZeile } from "@/lib/waagen";
 // denn die Waage gleicht Arbeiten am Volk nur in der Änderung aus. Die Legende ist immer
 // da: Sie zeigt die Werte zur Mausposition samt Änderung des ganzen Tages, sonst
 // die jüngsten, und weicht in die Ecke gegenüber der Maus aus. Der Tag unter der
-// Maus ist hinterlegt. Ohne Wert reißt die Linie ab. Sichtbar sind 7 Tage, die
+// Maus ist hinterlegt. Am Handy deckt die Legende das Diagramm zu und ist deshalb
+// erst aus, ein Knopf schaltet sie. Ohne Wert reißt die Linie ab. Sichtbar sind 7 Tage, die
 // übrigen erreicht man durch Ziehen; die Y-Achsen gelten für alle Daten, damit
 // die Linien dabei nicht springen. Nur die Summe hängt vom sichtbaren Zeitraum ab.
 //
@@ -179,6 +181,38 @@ const zeitFormat = new Intl.DateTimeFormat("de-DE", {
 });
 const tagFormat = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", timeZone: "Europe/Berlin" });
 
+const SCHMAL = "(max-width: 767px)";
+
+function schmalBeobachten(melden: () => void) {
+  const abfrage = window.matchMedia(SCHMAL);
+  abfrage.addEventListener("change", melden);
+  return () => abfrage.removeEventListener("change", melden);
+}
+
+// Legende ein oder aus: von Hand gewählt, sonst nach Bildschirmbreite. Beim
+// Server-Rendern ist die Breite unbekannt, dann gilt erst die breite Ansicht.
+export function useLegende() {
+  const schmal = useSyncExternalStore(schmalBeobachten, () => window.matchMedia(SCHMAL).matches, () => false);
+  const [wahl, setWahl] = useState<boolean | null>(null);
+  const an = wahl ?? !schmal;
+  return { an, umschalten: () => setWahl(!an) };
+}
+
+export function LegendenKnopf({ an, umschalten }: { an: boolean; umschalten: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={an}
+      aria-label={an ? "Legende ausblenden" : "Legende einblenden"}
+      title={an ? "Legende ausblenden" : "Legende einblenden"}
+      className={`${knopfKlassen(an ? "primary" : "secondary", "symbol")}`}
+      onClick={umschalten}
+    >
+      <IconAuge className="h-5 w-5" />
+    </button>
+  );
+}
+
 export function zahl(wert: number | null, stellen: number, vorzeichen = false) {
   if (wert === null) return "–";
   return wert.toLocaleString("de-DE", {
@@ -317,6 +351,7 @@ export function WaagenDiagramm({ titel, zeilen: quelle, zweite }: { titel: strin
   // Rechter Rand des Fensters, null = immer die neuesten Werte.
   const [ende, setEnde] = useState<number | null>(null);
   const ziehen = useRef<{ x: number; ende: number; bewegt: boolean } | null>(null);
+  const legende = useLegende();
 
   const bereiche = zweite ? BEREICHE_ZWEI : BEREICHE;
   const alleReihen = bereiche.flatMap((bereich) => bereich.reihen);
@@ -398,12 +433,15 @@ export function WaagenDiagramm({ titel, zeilen: quelle, zweite }: { titel: strin
 
   return (
     <figure>
-      <figcaption className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm">
-        <span className="font-semibold">{titel}</span>
-        <span className="text-xs text-muted tabular-nums">
-          {tagFormat.format(von)} bis {tagFormat.format(bis)}
-          {ziehbar && " · zum Verschieben ziehen"}
+      <figcaption className="flex items-center justify-between gap-3 text-sm">
+        <span className="min-w-0">
+          <span className="block font-semibold">{titel}</span>
+          <span className="block text-xs text-muted tabular-nums">
+            {tagFormat.format(von)} bis {tagFormat.format(bis)}
+            {ziehbar && " · zum Verschieben ziehen"}
+          </span>
         </span>
+        <LegendenKnopf an={legende.an} umschalten={legende.umschalten} />
       </figcaption>
       <ul className="mt-1 mb-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
         {alleReihen.map((reihe) => (
@@ -446,7 +484,7 @@ export function WaagenDiagramm({ titel, zeilen: quelle, zweite }: { titel: strin
             />
           ))}
 
-          <dl
+          {legende.an && <dl
             className="pointer-events-none absolute z-10 grid grid-cols-[auto_auto] gap-x-3 rounded-md border border-border bg-card/90 px-2.5 py-1.5 text-xs shadow-md"
             style={{ [maus && maus.x > 0.5 ? "left" : "right"]: 6, [maus && maus.y < 0.5 ? "bottom" : "top"]: 6 }}
           >
@@ -478,7 +516,7 @@ export function WaagenDiagramm({ titel, zeilen: quelle, zweite }: { titel: strin
                 <dd className="text-right font-semibold tabular-nums">{zahl(aktiv.tagesAenderungB, 2, true)} kg</dd>
               </>
             )}
-          </dl>
+          </dl>}
         </div>
 
         <div className="flex flex-col gap-1">
