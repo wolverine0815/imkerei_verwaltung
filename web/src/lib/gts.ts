@@ -1,6 +1,6 @@
 // Grünlandtemperatursumme (GTS): ab dem 1. Januar werden die positiven
 // Tagesmittel der Lufttemperatur addiert, im Januar mit dem Faktor 0,5, im
-// Februar mit 0,75, danach voll. 200 Grad gelten als Beginn des Vorfrühlings.
+// Februar mit 0,75, danach voll. Die Karte nennt den Tag, an dem GTS_MARKE erreicht ist.
 //
 // Wolf liefert die Summe auch selbst, sein Wert sinkt aber stellenweise. Das
 // kann bei einer Summe nicht sein, deshalb rechnen wir aus den Tagesmitteln.
@@ -8,7 +8,7 @@
 // Wetterdienst (eine Waage misst oft nicht seit dem 1. Januar).
 // Ohne Abhängigkeiten, damit es sich auch außerhalb der App prüfen lässt.
 
-export const GTS_VORFRUEHLING = 200;
+export const GTS_MARKE = 350;
 
 export type GtsTag = { tag: string; mittelC: number | null };
 
@@ -58,7 +58,7 @@ export function gtsBerechnen(tage: GtsTag[], jahr: number, bisTag: string): GtsE
     }
     letzterTag = tag;
     if (mittel > 0) summe += mittel * faktor(datum.getUTCMonth() + 1);
-    if (erreichtAm === null && summe >= GTS_VORFRUEHLING) erreichtAm = tag;
+    if (erreichtAm === null && summe >= GTS_MARKE) erreichtAm = tag;
   }
   return { summe: Math.round(summe * 10) / 10, erreichtAm, fehlendeTage, letzterTag };
 }

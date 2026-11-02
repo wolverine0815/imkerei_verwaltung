@@ -1,5 +1,5 @@
 import { Button, Card, Select } from "@/components/ui";
-import { GTS_VORFRUEHLING } from "@/lib/gts";
+import { GTS_MARKE } from "@/lib/gts";
 import { standGtsLaden, wetterWaageLaden } from "@/lib/waagen";
 import { wetterWaageWaehlen } from "@/lib/waagen-actions";
 
@@ -11,8 +11,8 @@ export async function GtsKarte({ bienenstandId, auswahl = false }: { bienenstand
   if (!gts.letzterTag && waagen.length === 0) return null;
 
   const erreicht = gts.erreichtAm
-    ? `${GTS_VORFRUEHLING} Grad erreicht am ${new Date(`${gts.erreichtAm}T00:00:00Z`).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", timeZone: "UTC" })}`
-    : `${GTS_VORFRUEHLING} Grad noch nicht erreicht`;
+    ? `${GTS_MARKE} Grad erreicht am ${new Date(`${gts.erreichtAm}T00:00:00Z`).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", timeZone: "UTC" })}`
+    : `${GTS_MARKE} Grad noch nicht erreicht`;
 
   const quelle = !gts.waageName
     ? "Wetterdaten vom Wetterdienst"
