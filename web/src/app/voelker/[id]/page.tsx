@@ -15,6 +15,7 @@ import {
 import { DokumenteMiniListe } from "@/components/dokumente-mini-liste";
 import { Card, knopfKlassen } from "@/components/ui";
 import { WaagenKarte } from "@/components/waagen-karte";
+import { SaisonAufklappbar } from "@/components/saison-aufklappbar";
 import { volkGtsText } from "@/lib/waagen";
 import { anzeigeFarbe, koeniginZeile, verbleibKurz, type EreignisArt } from "@/lib/koeniginnen";
 import { KoeniginUmweiselnDialog } from "@/components/koenigin-umweiseln-dialog";
@@ -782,7 +783,7 @@ export default async function VolkDetailPage({
             saison.punkte.filter((punkt) => punkt.art === "wechsel").length
           );
           return (
-          <details key={saison.jahr} open={index === 0} className="group">
+          <SaisonAufklappbar key={saison.jahr} jahr={saison.jahr} startOffen={index === 0}>
             <summary className="flex min-h-11 cursor-pointer list-none items-start justify-between gap-3 rounded-xl border border-rand-ruhig bg-card px-4 py-3 [&::-webkit-details-marker]:hidden">
               <span className="flex min-w-0 flex-col gap-0.5">
                 <span className="font-semibold">
@@ -1179,7 +1180,7 @@ export default async function VolkDetailPage({
             );
           })}
           </div>
-          </details>
+          </SaisonAufklappbar>
           );
           })
         )}
