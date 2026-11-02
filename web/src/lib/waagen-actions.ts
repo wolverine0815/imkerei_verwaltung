@@ -68,6 +68,15 @@ export async function waageAnlegen(formData: FormData): Promise<WaagenErgebnis> 
   return { ok: true, meldung: `Waage ${kennung} angelegt. Du kannst sie jetzt einem Volk zuordnen.` };
 }
 
+// Die Kennung bleibt fest: Sie gehört zur Waage bei Wolf, ein neuer Wert wäre
+// eine andere Waage.
+export async function waageUmbenennen(waageId: string, formData: FormData) {
+  await nurAdmin();
+  const name = String(formData.get("name") ?? "").trim() || null;
+  await prisma.waage.update({ where: { id: waageId }, data: { name } });
+  neuZeichnen();
+}
+
 // Messwerte und Tageswerte werden mitgelöscht (onDelete: Cascade).
 export async function waageLoeschen(waageId: string) {
   await nurAdmin();

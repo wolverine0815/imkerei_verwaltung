@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Card } from "@/components/ui";
+import { Button, Card, Input } from "@/components/ui";
 import { LoeschenButton } from "@/components/loeschen-button";
 import { SeitenNavigation } from "@/components/seiten-navigation";
 import { WaagenAbrufKnopf, WaagenZugang, WaageNeu } from "@/components/waagen-einstellungen";
 import { istAdmin } from "@/lib/konto";
 import { prisma } from "@/lib/prisma";
 import { WAAGEN_HERSTELLER_LABEL, waagenEinstellungLaden } from "@/lib/waagen";
-import { waageAnlegen, waageLoeschen, waagenEinstellungSpeichern, waagenJetztAbrufen } from "@/lib/waagen-actions";
+import { waageAnlegen, waageLoeschen, waagenEinstellungSpeichern, waagenJetztAbrufen, waageUmbenennen } from "@/lib/waagen-actions";
 
 function zeit(wert: Date) {
   return wert.toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Berlin" });
@@ -64,22 +64,33 @@ export default async function WaagenEinstellungenPage() {
         ) : (
           <ul className="mb-4 flex flex-col divide-y divide-border">
             {waagen.map((waage) => (
-              <li key={waage.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+              <li key={waage.id} className="flex flex-col gap-2 py-3">
                 <span className="min-w-0 text-sm">
-                  <span className="font-medium">{waage.name || waage.kennung}</span>
-                  <span className="text-muted"> · {WAAGEN_HERSTELLER_LABEL[waage.hersteller]} {waage.kennung} · </span>
+                  <span className="text-muted">{WAAGEN_HERSTELLER_LABEL[waage.hersteller]} {waage.kennung} · </span>
                   {waage.volk ? (
                     <Link href={`/voelker/${waage.volk.id}`} className="text-accent hover:underline">{waage.volk.name}</Link>
                   ) : (
                     <span className="text-muted">keinem Volk zugeordnet</span>
                   )}
                 </span>
-                <LoeschenButton
-                  action={waageLoeschen.bind(null, waage.id)}
-                  bestaetigung={`Waage ${waage.kennung} mit allen Messwerten löschen?`}
-                >
-                  Löschen
-                </LoeschenButton>
+                <div className="flex flex-wrap items-center gap-2">
+                  <form action={waageUmbenennen.bind(null, waage.id)} className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                    <Input
+                      name="name"
+                      defaultValue={waage.name ?? ""}
+                      placeholder={waage.kennung}
+                      aria-label={`Name der Waage ${waage.kennung}`}
+                      className="min-w-40 flex-1"
+                    />
+                    <Button type="submit" variant="secondary">Speichern</Button>
+                  </form>
+                  <LoeschenButton
+                    action={waageLoeschen.bind(null, waage.id)}
+                    bestaetigung={`Waage ${waage.kennung} mit allen Messwerten löschen?`}
+                  >
+                    Löschen
+                  </LoeschenButton>
+                </div>
               </li>
             ))}
           </ul>
