@@ -42,9 +42,15 @@ export async function waagenEinstellungSpeichern(formData: FormData): Promise<Wa
 
 export async function waagenJetztAbrufen(): Promise<WaagenErgebnis> {
   await nurAdmin();
-  const ergebnis = await waagenAbrufen();
-  neuZeichnen();
-  return ergebnis;
+  // Geworfene Fehler kämen im Browser ohne Text an.
+  try {
+    const ergebnis = await waagenAbrufen();
+    neuZeichnen();
+    return ergebnis;
+  } catch (fehler) {
+    console.error("Waagen-Abruf von Hand:", fehler);
+    return { ok: false, meldung: `Abruf fehlgeschlagen: ${fehler instanceof Error ? fehler.message : "unbekannter Fehler"}` };
+  }
 }
 
 export async function waageAnlegen(formData: FormData): Promise<WaagenErgebnis> {

@@ -30,8 +30,10 @@ function useAbsenden(aktion: (formData: FormData) => Promise<WaagenErgebnis>, na
       const antwort = await aktion(new FormData(formular));
       setErgebnis(antwort);
       if (antwort.ok) nachher?.(formular);
-    } catch {
-      setErgebnis({ ok: false, meldung: "Keine Verbindung zum Server. Bitte noch einmal versuchen." });
+    } catch (fehler) {
+      console.error("Waagen-Aktion:", fehler);
+      const grund = fehler instanceof Error ? fehler.message : "unbekannter Fehler";
+      setErgebnis({ ok: false, meldung: `Der Server hat nicht richtig geantwortet (${grund}). Bitte die Seite neu laden und noch einmal versuchen.` });
     } finally {
       setLaeuft(false);
     }
