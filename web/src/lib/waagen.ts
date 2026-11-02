@@ -64,6 +64,20 @@ export async function standGtsLaden(bienenstandId: string, jetzt = new Date()): 
   };
 }
 
+// Für die Standübersicht: nur Stände, für die es schon Tageswerte gibt.
+export async function standGtsTexte(bienenstandIds: string[]): Promise<Map<string, string>> {
+  const texte = new Map<string, string>();
+  await Promise.all(
+    bienenstandIds.map(async (id) => {
+      const gts = await standGtsLaden(id);
+      if (gts?.letzterTag) {
+        texte.set(id, `${gts.summe.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} °C`);
+      }
+    }),
+  );
+  return texte;
+}
+
 export type VerlaufZeile = {
   t: number;
   gewicht: number | null;

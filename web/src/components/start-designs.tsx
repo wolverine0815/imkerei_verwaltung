@@ -17,6 +17,8 @@ export type StartStand = {
   standtyp: Standtyp;
   adresse: string;
   anzahlVoelker: number;
+  // Grünlandtemperatursumme als fertiger Text, ohne Waage am Stand leer.
+  gts: string | null;
   letzteDurchsicht: Date | null;
   offen: number;
   dringend: number;
@@ -106,6 +108,7 @@ function WabeStandKarte({ stand, gedaempft = false }: { stand: StartStand; gedae
             />
           ))}
           <span className="ml-1">{voelkerText(stand.anzahlVoelker)}</span>
+          {stand.gts && <span title="Grünlandtemperatursumme">· GTS {stand.gts}</span>}
         </p>
         <div className="mt-1 flex items-center justify-between gap-2 text-sm">
           <span className="text-muted">{stand.letzteDurchsicht ? `Durchsicht ${kurzesDatum(stand.letzteDurchsicht)}` : "Noch keine Durchsicht"}</span>
@@ -225,6 +228,7 @@ function KlarStandZeile({ stand }: { stand: StartStand }) {
           ))}
         </span>
         <span className="text-sm text-muted">{voelkerText(stand.anzahlVoelker)}</span>
+        {stand.gts && <span className="text-sm text-muted" title="Grünlandtemperatursumme">GTS {stand.gts}</span>}
       </span>
       <span className="klar-mono hidden text-sm sm:block">{stand.letzteDurchsicht ? kurzesDatum(stand.letzteDurchsicht) : "–"}</span>
       <span className="row-start-1 col-start-2 text-right text-sm sm:row-auto sm:col-auto sm:text-left">
