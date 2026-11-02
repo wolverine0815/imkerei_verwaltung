@@ -47,6 +47,7 @@ const OHNE_PROTOKOLL = new Set([
   "WaagenEinstellung",
   "WaagenMesswert",
   "WaagenTageswert",
+  "StandWettertag",
 ]);
 
 // Felder, die nie ins Protokoll gehören.

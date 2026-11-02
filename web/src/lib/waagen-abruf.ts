@@ -1,5 +1,6 @@
 import { mitSchema, prisma } from "@/lib/prisma";
 import { kontoSchemas } from "@/lib/velutina";
+import { wetterHolen } from "@/lib/wetter";
 import { MESSWERTE_TAGE, tagInBerlin, waagenEinstellungLaden } from "@/lib/waagen";
 import {
   WolfSitzungAbgelaufen,
@@ -160,6 +161,40 @@ async function waageAbrufen(
   }
 }
 
+// Tagesmittel vom Wetterdienst für alle Stände mit Koordinaten, ab dem 1. Januar.
+// Wetterdaten ändern sich nachträglich kaum, je Tag reicht ein Abruf.
+async function wetterAbrufen(jetzt: Date): Promise<string[]> {
+  const heute = tagInBerlin(jetzt);
+  const jahresbeginn = `${heute.slice(0, 4)}-01-01`;
+  const gestern = new Date(tagDatum(heute).getTime() - TAG_MS).toISOString().slice(0, 10);
+  if (gestern < jahresbeginn) return [];
+
+  const staende = await prisma.bienenstand.findMany({
+    where: { archiviert: false, breitengrad: { not: null }, laengengrad: { not: null } },
+    select: { id: true, name: true, breitengrad: true, laengengrad: true },
+  });
+  const fehler: string[] = [];
+  for (const stand of staende) {
+    try {
+      const letzter = await prisma.standWettertag.findFirst({
+        where: { bienenstandId: stand.id, tag: { gte: tagDatum(jahresbeginn) } },
+        orderBy: { tag: "desc" },
+        select: { tag: true },
+      });
+      const ab = letzter ? new Date(letzter.tag.getTime() + TAG_MS).toISOString().slice(0, 10) : jahresbeginn;
+      if (ab > gestern) continue;
+      const tage = await wetterHolen(stand.breitengrad!, stand.laengengrad!, ab, gestern);
+      await prisma.standWettertag.createMany({
+        data: tage.map((t) => ({ bienenstandId: stand.id, tag: tagDatum(t.tag), mittelC: t.mittelC })),
+        skipDuplicates: true,
+      });
+    } catch (grund) {
+      fehler.push(`Wetter ${stand.name}: ${grund instanceof Error ? grund.message : "unbekannter Fehler"}`);
+    }
+  }
+  return fehler;
+}
+
 export type AbrufErgebnis = { ok: boolean; meldung: string };
 
 // Für das angemeldete oder per mitSchema gewählte Konto.
@@ -168,17 +203,19 @@ export async function waagenAbrufen(): Promise<AbrufErgebnis> {
   if (!einstellung?.aktiv) return { ok: false, meldung: "Der Bereich Waagen ist ausgeschaltet." };
   const benutzer = einstellung.benutzer;
   const passwort = einstellung.passwort;
+  const jetzt = new Date();
+  // Unabhängig von Wolf: auch Stände ohne Waage bekommen so ihre GTS.
+  const fehler = await wetterAbrufen(jetzt);
+
   if (!benutzer || !passwort) {
     const meldung = "Die Wolf-Zugangsdaten fehlen oder sind nicht lesbar.";
     await prisma.waagenEinstellung.update({ where: { id: "standard" }, data: { fehler: meldung } });
     return { ok: false, meldung };
   }
 
-  const jetzt = new Date();
   await prisma.waagenEinstellung.update({ where: { id: "standard" }, data: { letzterVersuch: jetzt } });
   const waagen = await prisma.waage.findMany({ select: { id: true, kennung: true, tageGeladenJahr: true } });
 
-  const fehler: string[] = [];
   for (const waage of waagen) {
     try {
       await mitSitzung(benutzer, passwort, (sitzung) => waageAbrufen(sitzung, waage, jetzt));

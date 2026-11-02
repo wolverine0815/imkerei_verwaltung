@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { entschluesseln } from "@/lib/geheim";
-import { gtsBerechnen, type GtsErgebnis } from "@/lib/gts";
+import { gtsBerechnen, gtsTageMischen, type GtsErgebnis } from "@/lib/gts";
 
 // Bienenstockwaagen: Lesen für Seiten und Speichern der abgerufenen Werte. Ein
 // Volk hat höchstens eine Waage (Waage.volkId). Einzelmessungen bleiben 14 Tage,
@@ -30,7 +30,14 @@ export async function volkWaageSetzen(volkId: string, waageId: string) {
   if (waageId) await prisma.waage.update({ where: { id: waageId }, data: { volkId } });
 }
 
-export type StandGts = GtsErgebnis & { waageName: string; waageId: string; jahr: number };
+export type StandGts = GtsErgebnis & {
+  // Null, wenn am Stand keine Waage steht: dann nur Wetterdienst.
+  waageName: string | null;
+  waageId: string | null;
+  tageWaage: number;
+  tageWetter: number;
+  jahr: number;
+};
 
 // Die Waage, deren Wetterdaten für den Stand zählen: die gewählte, solange sie
 // noch dort steht, sonst die zuerst angelegte.
@@ -46,26 +53,39 @@ export async function wetterWaageLaden(bienenstandId: string) {
   return { gewaehlt: waagen.find((w) => w.id === stand?.wetterWaageId) ?? waagen[0] ?? null, waagen };
 }
 
-// Nur aus den eigenen Tageswerten der Waage: Fehlt ihr ein Tag, meldet die Karte das.
-async function waageGtsLaden(waage: { id: string; kennung: string; name: string | null }, jetzt: Date): Promise<StandGts> {
+// Aus den eigenen Tageswerten der Waage, fehlende Tage vom Wetterdienst.
+async function gtsLaden(
+  bienenstandId: string,
+  waage: { id: string; kennung: string; name: string | null } | null,
+  jetzt: Date,
+): Promise<StandGts> {
   const heute = tagInBerlin(jetzt);
   const jahr = Number(heute.slice(0, 4));
-  const zeilen = await prisma.waagenTageswert.findMany({
-    where: { waageId: waage.id, tag: { gte: new Date(Date.UTC(jahr, 0, 1)) } },
-    select: { tag: true, temperaturMittelC: true },
-  });
-  const tage = zeilen.map((z) => ({ tag: z.tag.toISOString().slice(0, 10), mittelC: z.temperaturMittelC }));
+  const ab = new Date(Date.UTC(jahr, 0, 1));
+  const [eigene, wetter] = await Promise.all([
+    waage
+      ? prisma.waagenTageswert.findMany({ where: { waageId: waage.id, tag: { gte: ab } }, select: { tag: true, temperaturMittelC: true } })
+      : [],
+    prisma.standWettertag.findMany({ where: { bienenstandId, tag: { gte: ab } }, select: { tag: true, mittelC: true } }),
+  ]);
+  const { tage, tageWaage, tageWetter } = gtsTageMischen(
+    eigene.map((z) => ({ tag: z.tag.toISOString().slice(0, 10), mittelC: z.temperaturMittelC })),
+    wetter.map((z) => ({ tag: z.tag.toISOString().slice(0, 10), mittelC: z.mittelC })),
+    heute,
+  );
   return {
     ...gtsBerechnen(tage, jahr, heute),
-    waageName: waage.name || waage.kennung,
-    waageId: waage.id,
+    waageName: waage ? waage.name || waage.kennung : null,
+    waageId: waage?.id ?? null,
+    tageWaage,
+    tageWetter,
     jahr,
   };
 }
 
-export async function standGtsLaden(bienenstandId: string, jetzt = new Date()): Promise<StandGts | null> {
+export async function standGtsLaden(bienenstandId: string, jetzt = new Date()): Promise<StandGts> {
   const { gewaehlt } = await wetterWaageLaden(bienenstandId);
-  return gewaehlt ? waageGtsLaden(gewaehlt, jetzt) : null;
+  return gtsLaden(bienenstandId, gewaehlt, jetzt);
 }
 
 function gtsText(gts: StandGts) {
@@ -77,8 +97,8 @@ export async function volkGtsText(
   waage: { id: string; kennung: string; name: string | null } | null,
   bienenstandId: string,
 ): Promise<string | null> {
-  const gts = waage ? await waageGtsLaden(waage, new Date()) : await standGtsLaden(bienenstandId);
-  return gts?.letzterTag ? gtsText(gts) : null;
+  const gts = waage ? await gtsLaden(bienenstandId, waage, new Date()) : await standGtsLaden(bienenstandId);
+  return gts.letzterTag ? gtsText(gts) : null;
 }
 
 // Für die Standübersicht: nur Stände, für die es schon Tageswerte gibt.
@@ -87,7 +107,7 @@ export async function standGtsTexte(bienenstandIds: string[]): Promise<Map<strin
   await Promise.all(
     bienenstandIds.map(async (id) => {
       const gts = await standGtsLaden(id);
-      if (gts?.letzterTag) texte.set(id, gtsText(gts));
+      if (gts.letzterTag) texte.set(id, gtsText(gts));
     }),
   );
   return texte;

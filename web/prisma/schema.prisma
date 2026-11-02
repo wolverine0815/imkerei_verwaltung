@@ -67,6 +67,9 @@ model Bienenstand {
   /// Leer = die zuerst angelegte Waage an einem Volk dieses Stands.
   wetterWaageId String?
   wetterWaage   Waage?  @relation("StandWetterWaage", fields: [wetterWaageId], references: [id], onDelete: SetNull)
+
+  /// Tagesmittel vom Wetterdienst, ergänzt die GTS (siehe web/src/lib/wetter.ts).
+  wettertage StandWettertag[]
 }
 
 /// Sortierung der Völker-Kacheln auf der Bienenstand-Seite.
@@ -1669,6 +1672,16 @@ model Bereichswahl {
   id           String   @id @default("standard")
   abgeschaltet String[]
   updatedAt    DateTime @updatedAt
+}
+
+/// Ein Wert je Stand und Tag vom Wetterdienst, bleibt dauerhaft.
+model StandWettertag {
+  bienenstandId String
+  bienenstand   Bienenstand @relation(fields: [bienenstandId], references: [id], onDelete: Cascade)
+  tag           DateTime    @db.Date
+  mittelC       Float
+
+  @@id([bienenstandId, tag])
 }
 
 /// Bienenstockwaagen (Einstellungen -> Waagen). Eine einzige Zeile. Anders als

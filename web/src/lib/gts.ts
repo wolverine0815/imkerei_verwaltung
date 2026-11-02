@@ -4,6 +4,8 @@
 //
 // Wolf liefert die Summe auch selbst, sein Wert sinkt aber stellenweise. Das
 // kann bei einer Summe nicht sein, deshalb rechnen wir aus den Tagesmitteln.
+// Grundlage sind die Messungen der Waage, nur Tage ohne Messung kommen vom
+// Wetterdienst (eine Waage misst oft nicht seit dem 1. Januar).
 // Ohne Abhängigkeiten, damit es sich auch außerhalb der App prüfen lässt.
 
 export const GTS_VORFRUEHLING = 200;
@@ -23,6 +25,18 @@ function faktor(monat: number): number {
   if (monat === 1) return 0.5;
   if (monat === 2) return 0.75;
   return 1;
+}
+
+// Tage der Waage gehen vor. Gezählt wird nur vor `bisTag`, wie in gtsBerechnen.
+export function gtsTageMischen(waage: GtsTag[], wetter: GtsTag[], bisTag: string) {
+  const eigene = waage.filter((t) => t.mittelC !== null && t.mittelC !== undefined);
+  const belegt = new Set(eigene.map((t) => t.tag));
+  const ergaenzt = wetter.filter((t) => !belegt.has(t.tag));
+  return {
+    tage: [...eigene, ...ergaenzt],
+    tageWaage: eigene.filter((t) => t.tag < bisTag).length,
+    tageWetter: ergaenzt.filter((t) => t.tag < bisTag).length,
+  };
 }
 
 // `tage` sind die Tage eines Jahres, `bisTag` ist der erste Tag, der nicht
