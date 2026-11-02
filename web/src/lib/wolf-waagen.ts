@@ -83,6 +83,7 @@ export function wolfMessAdresse(kennung: string, intervall: "hour" | "day", von:
 
 const ZEITLIMIT_MS = 30_000;
 
+
 export class WolfSitzungAbgelaufen extends Error {}
 
 export type WolfSitzung = { cookies: Map<string, string> };
@@ -103,29 +104,33 @@ function kopfzeilen(cookies: Map<string, string>): Record<string, string> {
   return { Accept: "application/json", "X-Requested-With": "XMLHttpRequest", Cookie: cookieZeile(cookies) };
 }
 
+// /token antwortet erst nach der Anmeldung, davor steht das Token in der Seite,
+// je nach Seite als Meta-Angabe oder in den eingebetteten Daten.
+export function tokenAusSeite(html: string): string | null {
+  const treffer =
+    /name=["']csrf-token["'][^>]*content=["']([^"']+)/.exec(html) ??
+    /content=["']([^"']+)["'][^>]*name=["']csrf-token/.exec(html) ??
+    /csrf(?:&quot;|")\s*:\s*(?:&quot;|")([A-Za-z0-9+/=_-]+)/.exec(html);
+  return treffer?.[1] ?? null;
+}
+
 // Fehlermeldungen nennen nie Passwort oder Cookies.
 export async function wolfAnmelden(email: string, passwort: string): Promise<WolfSitzung> {
   const cookies = new Map<string, string>();
 
-  const seite = await fetch(`${WOLF_BASIS}/login`, { redirect: "manual", signal: AbortSignal.timeout(ZEITLIMIT_MS) });
+  const seite = await fetch(`${WOLF_BASIS}/login`, { cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(ZEITLIMIT_MS) });
   cookiesMerken(seite, cookies);
-
-  const tokenAntwort = await fetch(`${WOLF_BASIS}/token`, {
-    headers: kopfzeilen(cookies),
-    redirect: "manual",
-    signal: AbortSignal.timeout(ZEITLIMIT_MS),
-  });
-  if (!tokenAntwort.ok) throw new Error(`Wolf-Anmeldung: Token nicht erhalten (HTTP ${tokenAntwort.status}).`);
-  cookiesMerken(tokenAntwort, cookies);
-  const { token } = (await tokenAntwort.json()) as { token?: unknown };
-  if (typeof token !== "string") throw new Error("Wolf-Anmeldung: Token nicht erhalten.");
+  const token = tokenAusSeite(await seite.text());
+  const xsrf = cookies.get("XSRF-TOKEN");
+  if (!token && !xsrf) throw new Error("Wolf-Anmeldung: Token nicht erhalten.");
 
   const anmeldung = await fetch(`${WOLF_BASIS}/public/login`, {
     method: "POST",
+    cache: "no-store",
     headers: {
       ...kopfzeilen(cookies),
       "Content-Type": "application/json",
-      "X-CSRF-TOKEN": token,
+      ...(token ? { "X-CSRF-TOKEN": token } : { "X-XSRF-TOKEN": decodeURIComponent(xsrf ?? "") }),
       Origin: WOLF_BASIS,
       Referer: `${WOLF_BASIS}/login`,
     },
@@ -144,6 +149,7 @@ export async function wolfAnmelden(email: string, passwort: string): Promise<Wol
 
 export async function wolfDatenHolen(sitzung: WolfSitzung, adresse: string): Promise<unknown> {
   const antwort = await fetch(adresse, {
+    cache: "no-store",
     headers: kopfzeilen(sitzung.cookies),
     redirect: "manual",
     signal: AbortSignal.timeout(ZEITLIMIT_MS),
