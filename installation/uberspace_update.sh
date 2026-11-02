@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # Aktualisiert die Imkereiverwaltung auf dem Uberspace (ohne Docker).
 # Der neue Stand kommt aus dem Repository auf dem Uberspace (standardmäßig
-# ~/repos/Imkerei_Verwaltung.git, anderer Ort: IMKEREI_REPO setzen). Vorher
+# ~/imkerei_verwaltung, anderer Ort: IMKEREI_REPO setzen). Vorher
 # also die neuen Änderungen dorthin pushen (und bei Releases die Tags: --tags).
 #
-#   bash update.sh              neuester Release-Tag, sonst Zweig main
-#   bash update.sh v1.4.0       genau diese Version (oder ein anderer Tag/Zweig)
+#   imkerei-update                  Starter (uberspace_starter.sh), aktueller Zweig
+#   bash uberspace_update.sh        neuester Release-Tag, sonst $IMKEREI_ZWEIG
+#   bash uberspace_update.sh v1.4.0 genau diese Version (oder ein anderer Tag/Zweig)
 #
 # Was passiert:
-#   1. Sicherung der Datenbank und der hochgeladenen Dateien in ~/imkerei/sicherungen
+#   1. Sicherung der Datenbank und der hochgeladenen Dateien in ~/imkerei_verwaltung_app/sicherungen
 #   2. Der neue Stand wird aus dem Repository geholt.
 #   3. App wird gestoppt, neu gebaut und wieder gestartet. Offene
 #      Datenbank-Migrationen laufen beim Start automatisch.
@@ -37,8 +38,8 @@ ZWEIG="${IMKEREI_ZWEIG:-pt/beeintouch_import}"
 hinweis() { printf '\n\033[1;32m==> %s\033[0m\n' "$*"; }
 abbruch() { printf '\n\033[1;31mFehler: %s\033[0m\n' "$*" >&2; exit 1; }
 
-[ -f "$BASIS/.env" ] || abbruch "Keine $BASIS/.env gefunden. Erst einrichten.sh ausführen."
-[ -d "$QUELLE/.git" ] || abbruch "Kein Quellcode in $QUELLE gefunden. Erst einrichten.sh ausführen."
+[ -f "$BASIS/.env" ] || abbruch "Keine $BASIS/.env gefunden. Erst uberspace_setup.sh ausführen."
+[ -d "$QUELLE/.git" ] || abbruch "Kein Quellcode in $QUELLE gefunden. Erst uberspace_setup.sh ausführen."
 [ -d "$REPO" ] || abbruch "Das Repository $REPO gibt es nicht."
 
 set -a
@@ -105,6 +106,12 @@ fi
 NACHHER=$(git describe --tags --always)
 echo "Update: $VORHER -> $NACHHER"
 
+# Den Starter aktuell halten. Ältere Stände haben ihn noch nicht.
+if [ -f "$QUELLE/installation/uberspace_starter.sh" ]; then
+  mkdir -p "$HOME/bin"
+  install -m 755 "$QUELLE/installation/uberspace_starter.sh" "$HOME/bin/imkerei-update"
+fi
+
 # --- Bauen und neu starten --------------------------------------------------
 
 hinweis "Stoppe die App und baue neu ..."
@@ -151,6 +158,6 @@ cat <<FERTIG
   Falls etwas nicht stimmt: supervisorctl tail -f imkerei_verwaltung_app
 
   Zurück zur alten Version (Daten aus der Sicherung bei Bedarf einspielen):
-    bash update.sh $VORHER
+    imkerei-update $VORHER
 
 FERTIG

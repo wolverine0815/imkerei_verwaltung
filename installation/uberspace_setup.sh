@@ -5,7 +5,7 @@
 #
 # Voraussetzungen:
 #   - Ein Bare-Repository auf dem Uberspace, in das du das komplette Projekt
-#     gepusht hast, standardmäßig ~/repos/Imkerei_Verwaltung
+#     gepusht hast, standardmäßig ~/imkerei_verwaltung
 #     (anderer Ort: IMKEREI_REPO=/pfad/zum/repo setzen).
 #   - PostgreSQL läuft auf dem Uberspace (https://lab.uberspace.de/guide_postgresql/),
 #     mit leerer Datenbank und einem Benutzer, dem sie gehört.
@@ -13,7 +13,7 @@
 # Aufruf als normaler Uberspace-Benutzer (nicht root), z.B. aus einer Kopie des
 # Repositorys oder direkt aus dem Arbeitsordner:
 #
-#   bash einrichten.sh
+#   bash uberspace_setup.sh
 #
 # Was passiert:
 #   1. Node.js 22 wird eingestellt (dieselbe Version wie im Dockerfile).
@@ -111,7 +111,7 @@ if [ ! -f "$BASIS/.env" ]; then
 
   umask 077
   cat > "$BASIS/.env" <<ENV
-# Angelegt von einrichten.sh am $(date +%Y-%m-%d). Nicht weitergeben.
+# Angelegt von uberspace_setup.sh am $(date +%Y-%m-%d). Nicht weitergeben.
 PORT="$APP_PORT"
 DATABASE_URL="postgresql://$DB_USER:$DB_PASS@127.0.0.1:$DB_PORT/$DB_NAME?schema=public"
 ANMELDUNG_GEHEIMNIS="$(zufall 64)"
@@ -201,6 +201,12 @@ echo "Starte Next.js auf Port $PORT ..."
 exec ./node_modules/.bin/next start -H 0.0.0.0 -p "$PORT"
 START
 chmod 755 "$BASIS/start.sh"
+
+# Starter für spätere Updates. Ältere Stände haben ihn noch nicht.
+if [ -f "$QUELLE/installation/uberspace_starter.sh" ]; then
+  mkdir -p "$HOME/bin"
+  install -m 755 "$QUELLE/installation/uberspace_starter.sh" "$HOME/bin/imkerei-update"
+fi
 
 cat > "$HOME/etc/services.d/imkerei_verwaltung_app.ini" <<INI
 [program:imkerei_verwaltung_app]
