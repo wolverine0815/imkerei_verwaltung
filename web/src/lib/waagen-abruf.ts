@@ -4,6 +4,7 @@ import { MESSWERTE_TAGE, tagInBerlin, waagenEinstellungLaden } from "@/lib/waage
 import {
   WolfSitzungAbgelaufen,
   spur,
+  wolfHatDaten,
   wolfAnmelden,
   wolfDatenHolen,
   wolfMessAdresse,
@@ -96,17 +97,21 @@ async function tageswerteSpeichern(waageId: string, zeilen: { tag: Date; p: Wolf
   });
 }
 
-// Tageswerte ab wann? Fehlen Tage seit dem 1. Januar (Einschalten, Jahreswechsel,
-// Ausfall), alles neu, denn die GTS braucht jeden Tag. Sonst die letzten Tage.
-async function tageAbTag(waageId: string, jetzt: Date): Promise<string> {
+// Tageswerte ab wann? Einmal je Jahr alles ab dem 1. Januar (die GTS braucht
+// jeden Tag), danach ab dem letzten vorhandenen Tag, damit auch Ausfälle
+// nachkommen.
+async function tageAbTag(waage: { id: string; tageGeladenJahr: number | null }, jetzt: Date): Promise<string> {
   const heute = tagInBerlin(jetzt);
-  const jahresbeginn = `${heute.slice(0, 4)}-01-01`;
-  const vorhanden = await prisma.waagenTageswert.count({
-    where: { waageId, tag: { gte: tagDatum(jahresbeginn), lt: tagDatum(heute) }, temperaturMittelC: { not: null } },
+  const jahr = heute.slice(0, 4);
+  const jahresbeginn = `${jahr}-01-01`;
+  if (waage.tageGeladenJahr !== Number(jahr)) return jahresbeginn;
+  const letzter = await prisma.waagenTageswert.findFirst({
+    where: { waageId: waage.id, tag: { gte: tagDatum(jahresbeginn) } },
+    orderBy: { tag: "desc" },
+    select: { tag: true },
   });
-  const noetig = Math.round((tagDatum(heute).getTime() - tagDatum(jahresbeginn).getTime()) / TAG_MS);
-  if (vorhanden < noetig) return jahresbeginn;
-  const ab = new Date(tagDatum(heute).getTime() - NACHLADEN_TAGE * TAG_MS).toISOString().slice(0, 10);
+  const basis = letzter?.tag ?? tagDatum(heute);
+  const ab = new Date(basis.getTime() - NACHLADEN_TAGE * TAG_MS).toISOString().slice(0, 10);
   return ab < jahresbeginn ? jahresbeginn : ab;
 }
 
@@ -119,17 +124,25 @@ async function tageHolen(sitzung: WolfSitzung, kennung: string, abTag: string, j
     const bis = new Date(Math.min(von + TAGE_JE_ANFRAGE * TAG_MS, jetzt.getTime()));
     // Mitternacht in Berlin; eine Stunde Unterschied im Sommer füllt Wolf vorn auf.
     const antwort = await wolfDatenHolen(sitzung, wolfMessAdresse(kennung, "day", new Date(von - 2 * STUNDE_MS), bis));
-    const start = tagDatum(tagInBerlin(new Date((antwort as { pointStart: number }).pointStart))).getTime();
-    for (const p of wolfReihenLesen(antwort)) {
-      const tag = new Date(start + p.index * TAG_MS);
-      if (tag >= tagDatum(abTag)) nachTag.set(tag.toISOString(), { tag, p });
+    if (wolfHatDaten(antwort)) {
+      const start = tagDatum(tagInBerlin(new Date((antwort as { pointStart: number }).pointStart))).getTime();
+      for (const p of wolfReihenLesen(antwort)) {
+        const tag = new Date(start + p.index * TAG_MS);
+        if (tag >= tagDatum(abTag)) nachTag.set(tag.toISOString(), { tag, p });
+      }
     }
     if (bis.getTime() < jetzt.getTime()) await new Promise((fertig) => setTimeout(fertig, ANFRAGE_PAUSE_MS));
   }
+  // Ganz ohne Daten stimmt etwas nicht: Vorhandenes bleibt dann stehen.
+  if (nachTag.size === 0) throw new Error("Wolf hat keine Tageswerte geliefert.");
   return [...nachTag.values()];
 }
 
-async function waageAbrufen(sitzung: WolfSitzung, waage: { id: string; kennung: string }, jetzt: Date) {
+async function waageAbrufen(
+  sitzung: WolfSitzung,
+  waage: { id: string; kennung: string; tageGeladenJahr: number | null },
+  jetzt: Date,
+) {
   // Zeilen von vor der Spalte ertragKg zählen nicht, die 14 Tage kommen dann neu.
   const hatMesswerte = await prisma.waagenMesswert.findFirst({
     where: { waageId: waage.id, ertragKg: { not: null } },
@@ -141,10 +154,14 @@ async function waageAbrufen(sitzung: WolfSitzung, waage: { id: string; kennung: 
   await messwerteSpeichern(waage.id, stunden, vonStunden, jetzt);
 
   spur("Tageswerte vorbereiten");
-  const abTag = await tageAbTag(waage.id, jetzt);
+  const abTag = await tageAbTag(waage, jetzt);
   const tage = await tageHolen(sitzung, waage.kennung, abTag, jetzt);
   spur(`Tageswerte speichern (${tage.length})`);
   await tageswerteSpeichern(waage.id, tage, abTag);
+  const jahr = Number(tagInBerlin(jetzt).slice(0, 4));
+  if (waage.tageGeladenJahr !== jahr) {
+    await prisma.waage.update({ where: { id: waage.id }, data: { tageGeladenJahr: jahr } });
+  }
 }
 
 export type AbrufErgebnis = { ok: boolean; meldung: string };
@@ -166,7 +183,7 @@ export async function waagenAbrufen(): Promise<AbrufErgebnis> {
   const jetzt = new Date();
   await prisma.waagenEinstellung.update({ where: { id: "standard" }, data: { letzterVersuch: jetzt } });
   spur("Versuch vermerkt");
-  const waagen = await prisma.waage.findMany({ select: { id: true, kennung: true } });
+  const waagen = await prisma.waage.findMany({ select: { id: true, kennung: true, tageGeladenJahr: true } });
   spur(`${waagen.length} Waagen`);
 
   const fehler: string[] = [];

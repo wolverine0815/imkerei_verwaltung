@@ -1698,6 +1698,9 @@ model Waage {
   kennung    String           @unique
   name       String?
   volkId     String?          @unique
+  /// Jahr, für das alle Tageswerte geholt wurden. Eine Waage, die erst im Laufe
+  /// des Jahres misst, hat frühe Tage nie; sie sollen nicht bei jedem Abruf neu kommen.
+  tageGeladenJahr Int?
   volk       Volk?            @relation(fields: [volkId], references: [id], onDelete: SetNull)
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt

@@ -33,6 +33,13 @@ function zahl(wert: unknown): number | null {
   return typeof wert === "number" && Number.isFinite(wert) ? wert : null;
 }
 
+// Für Zeiträume ohne Messungen (Waage lief noch nicht) liefert Wolf eine Antwort
+// ohne pointStart und Reihen. Das ist kein Fehler, nur nichts zu lesen.
+export function wolfHatDaten(antwort: unknown): boolean {
+  const daten = antwort as { pointStart?: unknown; series?: unknown };
+  return zahl(daten?.pointStart) !== null && Array.isArray(daten?.series) && daten.series.length > 0;
+}
+
 // `values` beginnen bei pointStart im Abstand pointInterval. Wolf hängt vorn
 // und hinten Punkte über den angefragten Zeitraum hinaus an, hinten ohne Wert.
 export function wolfReihenLesen(antwort: unknown): WolfPunkt[] {
