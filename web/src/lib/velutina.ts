@@ -359,7 +359,7 @@ async function mailBenachrichtigung(abrufZeit: Date): Promise<void> {
   });
 }
 
-async function kontoSchemas(): Promise<string[]> {
+export async function kontoSchemas(): Promise<string[]> {
   const tester = await basisPrisma.testzugang.findMany({
     where: { eingerichtetAm: { not: null } },
     select: { id: true },

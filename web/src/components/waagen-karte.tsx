@@ -36,9 +36,7 @@ export async function WaagenKarte({ waage }: { waage: { id: string; kennung: str
 
       {stand && (
         <div className="flex flex-col gap-4">
-          <WaagenDiagramm titel={`Gewicht, letzte ${MESSWERTE_TAGE} Tage`} einheit="kg" punkte={verlauf.gewicht} stellen={2} />
-          <WaagenDiagramm titel="Temperatur" einheit="°C" punkte={verlauf.temperatur} />
-          <WaagenDiagramm titel="Luftfeuchte" einheit="%" punkte={verlauf.feuchte} stellen={0} />
+          <WaagenDiagramm titel={`Verlauf, letzte ${MESSWERTE_TAGE} Tage`} zeilen={verlauf.zeilen} />
 
           {verlauf.tageswerte.length > 0 && (
             <details>

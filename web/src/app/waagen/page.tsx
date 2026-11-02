@@ -48,9 +48,7 @@ export default async function WaagenPage() {
               <Card key={waage.id}>
                 <WaagenDiagramm
                   titel={`${waage.name || waage.kennung} · ${waage.volk.name}`}
-                  einheit="kg"
-                  punkte={verlaeufe[i].gewicht}
-                  stellen={2}
+                  zeilen={verlaeufe[i].zeilen}
                 />
               </Card>
             ) : null,

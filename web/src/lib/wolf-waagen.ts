@@ -10,8 +10,12 @@ export const WOLF_BASIS = "https://app.wolf-waagen.de";
 const MINDESTGEWICHT_KG = 1;
 
 export type WolfPunkt = {
+  // Position in der Reihe; ein Tag ergibt sich daraus sicherer als aus der
+  // Zeit, weil pointInterval die Zeitumstellung nicht kennt.
+  index: number;
   zeitpunkt: Date;
   gewichtKg: number | null;
+  ertragKg: number | null;
   temperaturC: number | null;
   temperaturMinC: number | null;
   temperaturMaxC: number | null;
@@ -51,8 +55,10 @@ export function wolfReihenLesen(antwort: unknown): WolfPunkt[] {
     const temperaturC = wert("temperature", i);
     if (gewichtKg === null && temperaturC === null) return;
     punkte.push({
+      index: i,
       zeitpunkt: new Date(start + i * abstand),
       gewichtKg: gewichtKg !== null && gewichtKg >= MINDESTGEWICHT_KG ? gewichtKg : null,
+      ertragKg: wert("yield", i),
       temperaturC,
       temperaturMinC: zahl(spanne(i)[0]),
       temperaturMaxC: zahl(spanne(i)[1]),
@@ -67,4 +73,86 @@ export function wolfReihenLesen(antwort: unknown): WolfPunkt[] {
 export function wolfMessAdresse(kennung: string, intervall: "hour" | "day", von: Date, bis: Date): string {
   const parameter = new URLSearchParams({ interval: intervall, start: String(von.getTime()), end: String(bis.getTime()) });
   return `${WOLF_BASIS}/graph/stock/${encodeURIComponent(kennung)}?${parameter}`;
+}
+
+// --- Anmeldung ---------------------------------------------------------------
+//
+// Wie die Web-App: Sitzungs-Cookies und CSRF-Token holen, dann mit E-Mail und
+// Passwort an /public/login. Wolf begrenzt die Anfragen (X-RateLimit-Limit),
+// deshalb hält eine Sitzung, solange Wolf sie annimmt.
+
+const ZEITLIMIT_MS = 30_000;
+
+export class WolfSitzungAbgelaufen extends Error {}
+
+export type WolfSitzung = { cookies: Map<string, string> };
+
+function cookiesMerken(antwort: Response, cookies: Map<string, string>) {
+  for (const zeile of antwort.headers.getSetCookie()) {
+    const paar = zeile.split(";", 1)[0];
+    const trenner = paar.indexOf("=");
+    if (trenner > 0) cookies.set(paar.slice(0, trenner), paar.slice(trenner + 1));
+  }
+}
+
+function cookieZeile(cookies: Map<string, string>) {
+  return [...cookies].map(([name, wert]) => `${name}=${wert}`).join("; ");
+}
+
+function kopfzeilen(cookies: Map<string, string>): Record<string, string> {
+  return { Accept: "application/json", "X-Requested-With": "XMLHttpRequest", Cookie: cookieZeile(cookies) };
+}
+
+// Fehlermeldungen nennen nie Passwort oder Cookies.
+export async function wolfAnmelden(email: string, passwort: string): Promise<WolfSitzung> {
+  const cookies = new Map<string, string>();
+
+  const seite = await fetch(`${WOLF_BASIS}/login`, { redirect: "manual", signal: AbortSignal.timeout(ZEITLIMIT_MS) });
+  cookiesMerken(seite, cookies);
+
+  const tokenAntwort = await fetch(`${WOLF_BASIS}/token`, {
+    headers: kopfzeilen(cookies),
+    redirect: "manual",
+    signal: AbortSignal.timeout(ZEITLIMIT_MS),
+  });
+  if (!tokenAntwort.ok) throw new Error(`Wolf-Anmeldung: Token nicht erhalten (HTTP ${tokenAntwort.status}).`);
+  cookiesMerken(tokenAntwort, cookies);
+  const { token } = (await tokenAntwort.json()) as { token?: unknown };
+  if (typeof token !== "string") throw new Error("Wolf-Anmeldung: Token nicht erhalten.");
+
+  const anmeldung = await fetch(`${WOLF_BASIS}/public/login`, {
+    method: "POST",
+    headers: {
+      ...kopfzeilen(cookies),
+      "Content-Type": "application/json",
+      "X-CSRF-TOKEN": token,
+      Origin: WOLF_BASIS,
+      Referer: `${WOLF_BASIS}/login`,
+    },
+    body: JSON.stringify({ email, password: passwort, remember: false }),
+    redirect: "manual",
+    signal: AbortSignal.timeout(ZEITLIMIT_MS),
+  });
+  if (anmeldung.status === 401 || anmeldung.status === 422) {
+    throw new Error("Wolf lehnt die Zugangsdaten ab. Bitte unter Einstellungen → Waagen prüfen.");
+  }
+  // Eine Weiterleitung ist kein Fehler; ob die Sitzung gilt, zeigt der erste Abruf.
+  if (anmeldung.status >= 400) throw new Error(`Wolf-Anmeldung fehlgeschlagen (HTTP ${anmeldung.status}).`);
+  cookiesMerken(anmeldung, cookies);
+  return { cookies };
+}
+
+export async function wolfDatenHolen(sitzung: WolfSitzung, adresse: string): Promise<unknown> {
+  const antwort = await fetch(adresse, {
+    headers: kopfzeilen(sitzung.cookies),
+    redirect: "manual",
+    signal: AbortSignal.timeout(ZEITLIMIT_MS),
+  });
+  cookiesMerken(antwort, sitzung.cookies);
+  const istJson = antwort.headers.get("content-type")?.includes("application/json");
+  if (antwort.status === 401 || antwort.status === 419 || (antwort.status >= 300 && antwort.status < 400) || (antwort.ok && !istJson)) {
+    throw new WolfSitzungAbgelaufen("Wolf-Sitzung abgelaufen.");
+  }
+  if (!antwort.ok) throw new Error(`Wolf antwortet mit HTTP ${antwort.status}.`);
+  return antwort.json();
 }

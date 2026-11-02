@@ -95,6 +95,19 @@ export function WaagenZugang({
   );
 }
 
+// Holt die Messwerte sofort, auch wenn der Zeitplan noch nicht dran ist.
+export function WaagenAbrufKnopf({ abrufen }: { abrufen: () => Promise<WaagenErgebnis> }) {
+  const { ergebnis, laeuft, absenden } = useAbsenden(() => abrufen());
+  return (
+    <form onSubmit={absenden} className="flex flex-col gap-3">
+      <Meldung ergebnis={ergebnis} />
+      <div>
+        <Button type="submit" variant="secondary" disabled={laeuft}>{laeuft ? "Wird abgerufen …" : "Jetzt abrufen"}</Button>
+      </div>
+    </form>
+  );
+}
+
 export function WaageNeu({ anlegen }: { anlegen: (formData: FormData) => Promise<WaagenErgebnis> }) {
   const { ergebnis, laeuft, absenden } = useAbsenden(anlegen, (formular) => formular.reset());
   return (

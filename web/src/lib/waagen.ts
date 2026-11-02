@@ -64,7 +64,14 @@ export async function standGtsLaden(bienenstandId: string, jetzt = new Date()): 
   };
 }
 
-export type DiagrammPunkt = { t: number; w: number | null };
+export type VerlaufZeile = {
+  t: number;
+  gewicht: number | null;
+  temperatur: number | null;
+  feuchte: number | null;
+  regen: number | null;
+  wind: number | null;
+};
 
 function ausduennen<T>(liste: T[]): T[] {
   if (liste.length <= MAX_DIAGRAMM_PUNKTE) return liste;
@@ -78,18 +85,21 @@ export async function waagenVerlaufLaden(waageId: string, jetzt = new Date()) {
     prisma.waagenMesswert.findMany({ where: { waageId, zeitpunkt: { gte: seit } }, orderBy: { zeitpunkt: "asc" } }),
     prisma.waagenTageswert.findMany({ where: { waageId, tag: { gte: seit } }, orderBy: { tag: "desc" } }),
   ]);
-  const duenn = ausduennen(messwerte);
-  const reihe = (wert: (m: (typeof messwerte)[number]) => number | null): DiagrammPunkt[] =>
-    duenn.map((m) => ({ t: m.zeitpunkt.getTime(), w: wert(m) }));
+  const zeilen: VerlaufZeile[] = ausduennen(messwerte).map((m) => ({
+    t: m.zeitpunkt.getTime(),
+    gewicht: m.gewichtKg,
+    temperatur: m.temperaturC,
+    feuchte: m.feuchteProzent,
+    regen: m.regenMm,
+    wind: m.windKmh,
+  }));
   const mitGewicht = messwerte.filter((m) => m.gewichtKg !== null);
   const letzter = mitGewicht.at(-1) ?? null;
   const vorTag = letzter
     ? mitGewicht.find((m) => m.zeitpunkt.getTime() >= letzter.zeitpunkt.getTime() - 24 * 60 * 60 * 1000)
     : null;
   return {
-    gewicht: reihe((m) => m.gewichtKg),
-    temperatur: reihe((m) => m.temperaturC),
-    feuchte: reihe((m) => m.feuchteProzent),
+    zeilen,
     tageswerte,
     letzterZeitpunkt: letzter?.zeitpunkt ?? null,
     letztesGewicht: letzter?.gewichtKg ?? null,

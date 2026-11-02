@@ -3,11 +3,15 @@ import { notFound } from "next/navigation";
 import { Card } from "@/components/ui";
 import { LoeschenButton } from "@/components/loeschen-button";
 import { SeitenNavigation } from "@/components/seiten-navigation";
-import { WaagenZugang, WaageNeu } from "@/components/waagen-einstellungen";
+import { WaagenAbrufKnopf, WaagenZugang, WaageNeu } from "@/components/waagen-einstellungen";
 import { istAdmin } from "@/lib/konto";
 import { prisma } from "@/lib/prisma";
 import { WAAGEN_HERSTELLER_LABEL, waagenEinstellungLaden } from "@/lib/waagen";
-import { waageAnlegen, waageLoeschen, waagenEinstellungSpeichern } from "@/lib/waagen-actions";
+import { waageAnlegen, waageLoeschen, waagenEinstellungSpeichern, waagenJetztAbrufen } from "@/lib/waagen-actions";
+
+function zeit(wert: Date) {
+  return wert.toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Berlin" });
+}
 
 // Hier wird das Feature eingeschaltet, deshalb gibt es die Seite auch, solange
 // der Bereich Waagen aus ist.
@@ -40,6 +44,18 @@ export default async function WaagenEinstellungenPage() {
           speichern={waagenEinstellungSpeichern}
         />
       </Card>
+
+      {einstellung?.aktiv && (
+        <Card>
+          <h2 className="text-lg font-semibold">Abruf</h2>
+          <p className="mb-3 text-sm text-muted">
+            Stündlich, von November bis Februar einmal am Tag.
+            {einstellung.letzterErfolg && ` Zuletzt erfolgreich am ${zeit(einstellung.letzterErfolg)}.`}
+          </p>
+          {einstellung.fehler && <p className="mb-3 text-sm font-medium text-gefahr">{einstellung.fehler}</p>}
+          <WaagenAbrufKnopf abrufen={waagenJetztAbrufen} />
+        </Card>
+      )}
 
       <Card>
         <h2 className="mb-3 text-lg font-semibold">Deine Waagen</h2>

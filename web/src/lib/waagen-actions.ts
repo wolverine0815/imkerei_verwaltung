@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { verschluesseln } from "@/lib/geheim";
 import { istAdmin } from "@/lib/konto";
+import { waagenAbrufen } from "@/lib/waagen-abruf";
 
 export type WaagenErgebnis = { ok: boolean; meldung: string };
 
@@ -37,6 +38,13 @@ export async function waagenEinstellungSpeichern(formData: FormData): Promise<Wa
   });
   neuZeichnen();
   return { ok: true, meldung: aktiv ? "Gespeichert. Der Bereich Waagen ist eingeschaltet." : "Gespeichert. Der Bereich Waagen ist ausgeschaltet." };
+}
+
+export async function waagenJetztAbrufen(): Promise<WaagenErgebnis> {
+  await nurAdmin();
+  const ergebnis = await waagenAbrufen();
+  neuZeichnen();
+  return ergebnis;
 }
 
 export async function waageAnlegen(formData: FormData): Promise<WaagenErgebnis> {

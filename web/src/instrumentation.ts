@@ -2,6 +2,7 @@
 // regelmäßigen Abrufe, die laufen, solange der Server läuft:
 //   - Velutina-Meldungen bei der LUBW (web/src/lib/velutina.ts), alle paar Stunden
 //   - Update-Prüfung bei GitHub (web/src/lib/update.ts), einmal am Tag
+//   - Bienenstockwaagen bei Wolf (web/src/lib/waagen-abruf.ts), stündlich, im Winter täglich
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
   if (process.env.NEXT_PHASE === "phase-production-build") return;
@@ -25,6 +26,11 @@ export async function register() {
     // Stündlich nachsehen, ob der letzte Abruf älter als der Abrufabstand ist.
     setInterval(pruefen, Math.min(ABRUF_ABSTAND_MS, STUNDE_MS));
   }
+
+  const { waagenAbgleich } = await import("@/lib/waagen-abruf");
+  const waagenPruefen = () => waagenAbgleich().catch((fehler) => console.error("Waagen-Abruf:", fehler));
+  setTimeout(waagenPruefen, 120_000);
+  setInterval(waagenPruefen, STUNDE_MS);
 
   const { pruefungFaellig, pruefungMoeglich, updatePruefen } = await import("@/lib/update");
   if (pruefungMoeglich()) {
