@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from "async_hooks";
 import { headers } from "next/headers";
 import type { PrismaClient } from "@/generated/prisma/client";
 import { clientFuerSchema } from "@/lib/datenbank";
-import { historieKontextSetzen } from "@/lib/historie";
+import { historieKontextSetzen, type HistorieWer } from "@/lib/historie";
 import { aktuellesKonto } from "@/lib/konto";
 
 export { basisPrisma } from "@/lib/datenbank";
@@ -26,6 +26,7 @@ export { basisPrisma } from "@/lib/datenbank";
 const gemeinsam = globalThis as unknown as {
   schemaVorgabe?: AsyncLocalStorage<string>;
   nutzeraktion?: AsyncLocalStorage<boolean>;
+  historieWer?: AsyncLocalStorage<HistorieWer>;
 };
 const schemaVorgabe = (gemeinsam.schemaVorgabe ??= new AsyncLocalStorage<string>());
 
@@ -41,12 +42,23 @@ export function alsNutzeraktion<T>(ablauf: () => Promise<T>): Promise<T> {
   return nutzeraktion.run(true, ablauf);
 }
 
+// Innerhalb von `mitHistorieWer(wer, ...)` steht in der Historie dieser Benutzer
+// statt des angemeldeten. Für den Import aus BeeInTouch: der Admin legt die
+// Einträge an, sie sollen aber einem Helfer zugeschrieben werden.
+const historieWer = (gemeinsam.historieWer ??= new AsyncLocalStorage<HistorieWer>());
+
+export function mitHistorieWer<T>(wer: HistorieWer, ablauf: () => Promise<T>): Promise<T> {
+  return historieWer.run(wer, ablauf);
+}
+
 // Wer ändert gerade? Für die Historie (lib/historie.ts). Nur bei Server-
 // Aktionen und Nutzeraktionen eines angemeldeten Kontos - was beim bloßen
 // Anzeigen einer Seite nebenbei gespeichert wird, gehört nicht hinein.
 historieKontextSetzen(async () => {
   if (schemaVorgabe.getStore()) return null;
   if (!nutzeraktion.getStore() && !(await ausServerAktion())) return null;
+  const vorgabe = historieWer.getStore();
+  if (vorgabe) return vorgabe;
   const konto = await aktuellesKonto().catch(() => null);
   if (!konto) return null;
   return {

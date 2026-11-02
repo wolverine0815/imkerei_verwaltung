@@ -32,7 +32,7 @@ export PATH="$HOME/bin:$PATH"
 BASIS="$HOME/imkerei_verwaltung_app"
 QUELLE="$BASIS/quelle"
 REPO="${IMKEREI_REPO:-$HOME/imkerei_verwaltung}"
-ZWEIG="${IMKEREI_ZWEIG:-master}"
+ZWEIG="${IMKEREI_ZWEIG:-pt/beeintouch_import}"
 
 hinweis() { printf '\n\033[1;32m==> %s\033[0m\n' "$*"; }
 abbruch() { printf '\n\033[1;31mFehler: %s\033[0m\n' "$*" >&2; exit 1; }

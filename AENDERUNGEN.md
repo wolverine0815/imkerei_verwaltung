@@ -14,6 +14,10 @@ So sieht ein Abschnitt aus:
 
 Neue Abschnitte kommen oben hin.
 
+## 1.1.0
+
+- Neu unter Einstellungen: **Import aus BeeInTouch**. Du lädst die Stockkarten als PDF hoch (eine je Volk), siehst vorab, was angelegt wird, und die App übernimmt Durchschauen, Fütterungen, Behandlungen, Honigernten, Varroakontrollen und auf Wunsch die Königin. Die Einträge lassen sich einem Helfer zuschreiben. Derselbe Import lässt sich gefahrlos wiederholen, nichts wird doppelt angelegt.
+
 ## 1.0.1
 
 - Testzugänge und Styleguide sind Werkzeuge für die Entwicklung. Sie erscheinen bei selbst installierten Instanzen nicht mehr in den Einstellungen.
