@@ -124,19 +124,31 @@ if [ -f "$BASIS/next.tar.gz" ]; then
   rm -rf .next
   tar -xzf "$BASIS/next.tar.gz" -C "$QUELLE/web"
   [ -d "$QUELLE/web/.next" ] || abbruch "In next.tar.gz fehlt der Ordner .next."
+  # Turbopack nennt manche Pakete im Build um (z.B. pg-587764f78a6c7a9c) und
+  # legt dafür Links in .next/node_modules an. Windows-tar nimmt sie nicht
+  # mit, also hier neu anlegen.
+  hinweis "Lege die Paket-Links in .next/node_modules an ..."
+  { grep -rhoE "[\"'](@[a-z0-9._-]+/)?[a-z0-9._-]+-[0-9a-f]{16}" .next/server --include=*.js || true; } \
+    | tr -d "\"'" | sort -u | while read -r n; do
+      base="${n%-????????????????}"
+      if [ -d "node_modules/$base" ]; then
+        mkdir -p ".next/node_modules/$(dirname "$n")"
+        ln -sfn "$PWD/node_modules/$base" ".next/node_modules/$n"
+      fi
+    done
   mv -f "$BASIS/next.tar.gz" "$BASIS/next.tar.gz.verwendet"
 else
   npx next build --webpack
 fi
 
 hinweis "Starte die App ..."
-supervisorctl start imkerei
+supervisorctl start imkerei_verwaltung_app
 
 cat <<FERTIG
 
   Fertig. Jetzt läuft Version $NACHHER.
 
-  Falls etwas nicht stimmt: supervisorctl tail -f imkerei
+  Falls etwas nicht stimmt: supervisorctl tail -f imkerei_verwaltung_app
 
   Zurück zur alten Version (Daten aus der Sicherung bei Bedarf einspielen):
     bash update.sh $VORHER
