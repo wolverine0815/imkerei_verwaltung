@@ -7,12 +7,14 @@ import type { VerlaufZeile } from "@/lib/waagen";
 // Verlauf einer Waage nach dem Vorbild der Wolf-Auswertung: drei Bereiche
 // untereinander auf derselben Zeitachse. Oben teilen sich Temperatur, Feuchte
 // und Regen einen Bereich, Temperatur mit Achse links, Feuchte rechts. Darunter
-// das Gewicht, unten die stündliche Änderung als Balken. Die Legende ist immer
+// die Gewichtsänderung: je Stunde als Balken (Achse links), aufsummiert ab dem
+// linken Rand als Linie (Achse rechts). Das Gesamtgewicht steht in der Legende,
+// denn die Waage gleicht Arbeiten am Volk nur in der Änderung aus. Die Legende ist immer
 // da: Sie zeigt die Werte zur Mausposition samt Änderung des ganzen Tages, sonst
 // die jüngsten, und weicht in die Ecke gegenüber der Maus aus. Der Tag unter der
 // Maus ist hinterlegt. Ohne Wert reißt die Linie ab. Sichtbar sind 7 Tage, die
 // übrigen erreicht man durch Ziehen; die Y-Achsen gelten für alle Daten, damit
-// die Linien dabei nicht springen.
+// die Linien dabei nicht springen. Nur die Summe hängt vom sichtbaren Zeitraum ab.
 
 const BREITE = 600;
 const STUNDE_MS = 60 * 60 * 1000;
@@ -31,7 +33,10 @@ const FARBE_REGEN = "#1a9a8a";
 // hellen etwas dunkler.
 const FLAECHE = "color-mix(in srgb, var(--color-foreground) 7%, var(--color-card))";
 
-type Schluessel = "gewicht" | "aenderung" | "temperatur" | "feuchte" | "regen";
+type Schluessel = "aenderung" | "summe" | "temperatur" | "feuchte" | "regen";
+
+// Summe der stündlichen Änderung, siehe WaagenDiagramm.
+type Zeile = VerlaufZeile & { summe: number | null };
 
 type Reihe = {
   schluessel: Schluessel;
@@ -42,6 +47,8 @@ type Reihe = {
   balken?: boolean;
   // Skala schließt 0 ein, Werte mit Vorzeichen.
   mitNull?: boolean;
+  // Maßstab nur aus dem sichtbaren Zeitraum.
+  fenster?: boolean;
   // Fester Maßstab; sonst aus den Werten.
   min?: number;
   max?: number;
@@ -56,8 +63,13 @@ const BEREICHE: { hoehe: number; reihen: Reihe[] }[] = [
       { schluessel: "regen", label: "Regen", einheit: "mm", farbe: FARBE_REGEN, stellen: 1, balken: true, min: 0 },
     ],
   },
-  { hoehe: 130, reihen: [{ schluessel: "gewicht", label: "Gewicht", einheit: "kg", farbe: "var(--color-accent)", stellen: 2 }] },
-  { hoehe: 100, reihen: [{ schluessel: "aenderung", label: "Änderung je Stunde", einheit: "kg", farbe: FARBE_REGEN, stellen: 2, balken: true, mitNull: true }] },
+  {
+    hoehe: 170,
+    reihen: [
+      { schluessel: "aenderung", label: "Änderung je Stunde", einheit: "kg", farbe: "var(--color-accent)", stellen: 2, balken: true, mitNull: true },
+      { schluessel: "summe", label: "Summe im Zeitraum", einheit: "kg", farbe: "var(--color-foreground)", stellen: 2, mitNull: true, fenster: true },
+    ],
+  },
 ];
 
 const ALLE_REIHEN = BEREICHE.flatMap((bereich) => bereich.reihen);
@@ -88,7 +100,7 @@ function runderSchritt(spanne: number, schritte: number) {
   return faktor * basis;
 }
 
-function massstab(zeilen: VerlaufZeile[], reihe: Reihe, schritte: number) {
+function massstab(zeilen: Zeile[], reihe: Reihe, schritte: number) {
   const werte = zeilen.flatMap((z) => (z[reihe.schluessel] === null ? [] : [z[reihe.schluessel] as number]));
   const grenzen = reihe.mitNull ? [...werte, 0] : werte;
   const roh = {
@@ -122,8 +134,8 @@ function BereichGrafik({
   tage,
   band,
 }: {
-  zeilen: VerlaufZeile[];
-  alle: VerlaufZeile[];
+  zeilen: Zeile[];
+  alle: Zeile[];
   von: number;
   bis: number;
   hoehe: number;
@@ -146,7 +158,7 @@ function BereichGrafik({
         <line key={t} x1={x(t)} x2={x(t)} y1="0" y2={hoehe} stroke="var(--color-muted)" strokeOpacity="0.45" strokeWidth="1" vectorEffect="non-scaling-stroke" />
       ))}
       {reihen.map((reihe) => {
-        const { min, max } = massstab(alle, reihe, schrittzahl(hoehe));
+        const { min, max } = massstab(reihe.fenster ? zeilen : alle, reihe, schrittzahl(hoehe));
         const y = (w: number) => yAnteil(w, min, max, hoehe);
         if (reihe.balken) {
           const nulllinie = y(Math.max(min, 0));
@@ -178,7 +190,7 @@ function BereichGrafik({
 }
 
 // Beschriftung einer Y-Achse; ohne Reihe bleibt die Spalte leer.
-function YAchse({ zeilen, hoehe, reihe, ausrichtung }: { zeilen: VerlaufZeile[]; hoehe: number; reihe?: Reihe; ausrichtung: "links" | "rechts" }) {
+function YAchse({ zeilen, hoehe, reihe, ausrichtung }: { zeilen: Zeile[]; hoehe: number; reihe?: Reihe; ausrichtung: "links" | "rechts" }) {
   const achse = reihe ? massstab(zeilen, reihe, schrittzahl(hoehe)) : null;
   return (
     <div className="relative text-[11px] leading-none text-muted tabular-nums" style={{ height: hoehe }}>
@@ -219,8 +231,19 @@ export function WaagenDiagramm({ titel, zeilen }: { titel: string; zeilen: Verla
 
   const alleTage = useMemo(() => tagesWechsel(zeilen), [zeilen]);
   const tage = useMemo(() => alleTage.filter((t) => t > von && t < bis), [alleTage, von, bis]);
-  // Je eine Stunde mehr, damit die Linie bis an den Rand reicht.
-  const sicht = useMemo(() => zeilen.filter((z) => z.t >= von - STUNDE_MS && z.t <= bis + STUNDE_MS), [zeilen, von, bis]);
+  const mitSumme = useMemo(() => {
+    const liste: (VerlaufZeile & { summe: number })[] = [];
+    for (const z of zeilen) liste.push({ ...z, summe: (liste.at(-1)?.summe ?? 0) + (z.aenderung ?? 0) });
+    return liste;
+  }, [zeilen]);
+  // Je eine Stunde mehr, damit die Linie bis an den Rand reicht. Die Summe beginnt
+  // am linken Rand bei 0.
+  const sicht = useMemo(() => {
+    const basis = mitSumme.findLast((z) => z.t < von)?.summe ?? 0;
+    return mitSumme
+      .filter((z) => z.t >= von - STUNDE_MS && z.t <= bis + STUNDE_MS)
+      .map((z) => ({ ...z, summe: z.summe - basis }));
+  }, [mitSumme, von, bis]);
 
   const aktiv = useMemo(() => {
     const innen = sicht.filter((z) => z.t >= von && z.t <= bis);
@@ -298,7 +321,7 @@ export function WaagenDiagramm({ titel, zeilen }: { titel: string; zeilen: Verla
       <div className="grid grid-cols-[2.25rem_minmax(0,1fr)_2rem]">
         <div className="flex flex-col gap-1">
           {BEREICHE.map((bereich) => (
-            <YAchse key={bereich.reihen[0].schluessel} zeilen={zeilen} hoehe={bereich.hoehe} reihe={bereich.reihen[0]} ausrichtung="links" />
+            <YAchse key={bereich.reihen[0].schluessel} zeilen={mitSumme} hoehe={bereich.hoehe} reihe={bereich.reihen[0]} ausrichtung="links" />
           ))}
         </div>
 
@@ -316,7 +339,7 @@ export function WaagenDiagramm({ titel, zeilen }: { titel: string; zeilen: Verla
             <BereichGrafik
               key={bereich.reihen[0].schluessel}
               zeilen={sicht}
-              alle={zeilen}
+              alle={mitSumme}
               von={von}
               bis={bis}
               hoehe={bereich.hoehe}
@@ -343,6 +366,8 @@ export function WaagenDiagramm({ titel, zeilen }: { titel: string; zeilen: Verla
                 </dd>
               </div>
             ))}
+            <dd className="text-muted">Gewicht</dd>
+            <dd className="text-right font-medium tabular-nums">{zahl(aktiv.gewicht, 2)} kg</dd>
             <dd className="mt-0.5 border-t border-border pt-0.5 font-semibold">Änderung Tag</dd>
             <dd className="mt-0.5 border-t border-border pt-0.5 text-right font-semibold tabular-nums">{zahl(aktiv.tagesAenderung, 2, true)} kg</dd>
           </dl>
@@ -352,7 +377,7 @@ export function WaagenDiagramm({ titel, zeilen }: { titel: string; zeilen: Verla
           {BEREICHE.map((bereich) => (
             <YAchse
               key={bereich.reihen[0].schluessel}
-              zeilen={zeilen}
+              zeilen={bereich.reihen[1]?.fenster ? sicht : mitSumme}
               hoehe={bereich.hoehe}
               reihe={bereich.reihen[1]?.balken ? undefined : bereich.reihen[1]}
               ausrichtung="rechts"
@@ -377,7 +402,7 @@ export function WaagenDiagramm({ titel, zeilen }: { titel: string; zeilen: Verla
           <button type="button" className={knopfKlassen("secondary", "mittel")} disabled={bis >= letzte} onClick={() => setEnde(bis + TAG_MS)}>
             Einen Tag vor
           </button>
-          <button type="button" className={knopfKlassen("leise", "mittel")} disabled={bis >= letzte} onClick={() => setEnde(null)}>
+          <button type="button" className={knopfKlassen("secondary", "mittel")} disabled={bis >= letzte} onClick={() => setEnde(null)}>
             Neueste
           </button>
         </div>
