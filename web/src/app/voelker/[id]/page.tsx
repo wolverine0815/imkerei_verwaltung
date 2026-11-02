@@ -14,6 +14,8 @@ import {
 } from "@/lib/actions";
 import { DokumenteMiniListe } from "@/components/dokumente-mini-liste";
 import { Card, knopfKlassen } from "@/components/ui";
+import { GtsKarte } from "@/components/gts-karte";
+import { WaagenKarte } from "@/components/waagen-karte";
 import { anzeigeFarbe, koeniginZeile, verbleibKurz, type EreignisArt } from "@/lib/koeniginnen";
 import { KoeniginUmweiselnDialog } from "@/components/koenigin-umweiseln-dialog";
 import { KoeniginStern } from "@/components/koenigin-stern";
@@ -249,6 +251,7 @@ export default async function VolkDetailPage({
 }) {
   const { id } = await params;
   const aus = await abgeschalteteBereiche();
+  const waage = aus.includes("waagen") ? await prisma.waage.findUnique({ where: { volkId: id } }) : null;
 
   const volk = await prisma.volk.findUnique({
     where: { id },
@@ -722,6 +725,9 @@ export default async function VolkDetailPage({
             </div>
           </details>
         ))}
+
+      {waage && <WaagenKarte waage={waage} />}
+      {waage && <GtsKarte bienenstandId={volk.bienenstandId} />}
 
       {/* Nur sichtbar, wenn tatsächlich Dokumente mit diesem Volk verknüpft
           sind - sonst würde jedes Volk eine leere Karte zeigen. Hochgeladen

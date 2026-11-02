@@ -39,14 +39,20 @@ export const BEREICHE = [
   },
 ] as const;
 
-export type Bereich = (typeof BEREICHE)[number]["schluessel"];
+// "waagen" steht nicht in BEREICHE: Es ist von Haus aus aus und wird unter
+// Einstellungen -> Waagen eingeschaltet (WaagenEinstellung.aktiv).
+export type Bereich = (typeof BEREICHE)[number]["schluessel"] | "waagen";
 
 // Pro Anfrage nur einmal aus der Datenbank lesen (Menü, Seite und Formulare
 // fragen alle danach).
 export const abgeschalteteBereiche = cache(async (): Promise<Bereich[]> => {
-  const zeile = await prisma.bereichswahl.findUnique({ where: { id: "standard" } });
+  const [zeile, waagen] = await Promise.all([
+    prisma.bereichswahl.findUnique({ where: { id: "standard" } }),
+    prisma.waagenEinstellung.findUnique({ where: { id: "standard" }, select: { aktiv: true } }),
+  ]);
   const gueltig = new Set<string>(BEREICHE.map((b) => b.schluessel));
-  return (zeile?.abgeschaltet ?? []).filter((s): s is Bereich => gueltig.has(s));
+  const aus = (zeile?.abgeschaltet ?? []).filter((s): s is Bereich => gueltig.has(s));
+  return waagen?.aktiv ? aus : [...aus, "waagen"];
 });
 
 export async function bereichAn(bereich: Bereich): Promise<boolean> {

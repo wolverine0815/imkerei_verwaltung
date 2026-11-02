@@ -17,6 +17,7 @@ import {
   IconLogo,
   IconQrCode,
   IconHornisse,
+  IconWaage,
   IconAnleitung,
   IconWabenrahmen,
   IconHonigglas,
@@ -123,6 +124,13 @@ export function navItems(faellig: number, velutina: number, aus: readonly string
       badge: velutina,
       badgeTitel: (anzahl) =>
         `${anzahl} ${anzahl === 1 ? "neue Meldung" : "neue Meldungen"} der Asiatischen Hornisse nahe deinen Ständen`,
+    },
+    {
+      href: "/waagen",
+      bereich: "waagen",
+      label: "Waagen",
+      icon: IconWaage,
+      istAktiv: (pfad) => pfad.startsWith("/waagen"),
     },
     {
       href: "/einstellungen",

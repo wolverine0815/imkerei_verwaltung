@@ -1,0 +1,98 @@
+import { prisma } from "@/lib/prisma";
+import { entschluesseln } from "@/lib/geheim";
+import { gtsBerechnen, type GtsErgebnis } from "@/lib/gts";
+
+// Bienenstockwaagen: Lesen für Seiten und Speichern der abgerufenen Werte. Ein
+// Volk hat höchstens eine Waage (Waage.volkId). Einzelmessungen bleiben 14 Tage,
+// je Tag bleibt dauerhaft eine Zeile für die Grünlandtemperatursumme.
+
+export const MESSWERTE_TAGE = 14;
+// Mehr Punkte zeigt ein Diagramm auf dieser Breite ohnehin nicht.
+const MAX_DIAGRAMM_PUNKTE = 400;
+
+export const WAAGEN_HERSTELLER_LABEL = { WOLF: "Wolf" } as const;
+
+export function tagInBerlin(zeit: Date): string {
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin" }).format(zeit);
+}
+
+export async function waagenEinstellungLaden() {
+  const zeile = await prisma.waagenEinstellung.findUnique({ where: { id: "standard" } });
+  if (!zeile) return null;
+  const passwort = zeile.passwortVerschluesselt ? entschluesseln(zeile.passwortVerschluesselt) : null;
+  return { ...zeile, passwort, passwortLesbar: !zeile.passwortVerschluesselt || passwort !== null };
+}
+
+// Für das Formular "Volk bearbeiten". Leere Auswahl löst die Waage vom Volk, eine
+// Waage von einem anderen Volk wechselt hierher.
+export async function volkWaageSetzen(volkId: string, waageId: string) {
+  await prisma.waage.updateMany({ where: { volkId, id: { not: waageId } }, data: { volkId: null } });
+  if (waageId) await prisma.waage.update({ where: { id: waageId }, data: { volkId } });
+}
+
+export type StandGts =GtsErgebnis & { waageName: string; waageId: string; jahr: number };
+
+// Die Waage, deren Wetterdaten für den Stand zählen: die gewählte, solange sie
+// noch dort steht, sonst die zuerst angelegte.
+export async function wetterWaageLaden(bienenstandId: string) {
+  const [stand, waagen] = await Promise.all([
+    prisma.bienenstand.findUnique({ where: { id: bienenstandId }, select: { wetterWaageId: true } }),
+    prisma.waage.findMany({
+      where: { volk: { bienenstandId } },
+      orderBy: { createdAt: "asc" },
+      include: { volk: { select: { name: true } } },
+    }),
+  ]);
+  return { gewaehlt: waagen.find((w) => w.id === stand?.wetterWaageId) ?? waagen[0] ?? null, waagen };
+}
+
+export async function standGtsLaden(bienenstandId: string, jetzt = new Date()): Promise<StandGts | null> {
+  const { gewaehlt } = await wetterWaageLaden(bienenstandId);
+  if (!gewaehlt) return null;
+  const heute = tagInBerlin(jetzt);
+  const jahr = Number(heute.slice(0, 4));
+  const zeilen = await prisma.waagenTageswert.findMany({
+    where: { waageId: gewaehlt.id, tag: { gte: new Date(Date.UTC(jahr, 0, 1)) } },
+    select: { tag: true, temperaturMittelC: true },
+  });
+  const tage = zeilen.map((z) => ({ tag: z.tag.toISOString().slice(0, 10), mittelC: z.temperaturMittelC }));
+  return {
+    ...gtsBerechnen(tage, jahr, heute),
+    waageName: gewaehlt.name || gewaehlt.kennung,
+    waageId: gewaehlt.id,
+    jahr,
+  };
+}
+
+export type DiagrammPunkt = { t: number; w: number | null };
+
+function ausduennen<T>(liste: T[]): T[] {
+  if (liste.length <= MAX_DIAGRAMM_PUNKTE) return liste;
+  const schritt = Math.ceil(liste.length / MAX_DIAGRAMM_PUNKTE);
+  return liste.filter((_, i) => i % schritt === 0);
+}
+
+export async function waagenVerlaufLaden(waageId: string, jetzt = new Date()) {
+  const seit = new Date(jetzt.getTime() - MESSWERTE_TAGE * 24 * 60 * 60 * 1000);
+  const [messwerte, tageswerte] = await Promise.all([
+    prisma.waagenMesswert.findMany({ where: { waageId, zeitpunkt: { gte: seit } }, orderBy: { zeitpunkt: "asc" } }),
+    prisma.waagenTageswert.findMany({ where: { waageId, tag: { gte: seit } }, orderBy: { tag: "desc" } }),
+  ]);
+  const duenn = ausduennen(messwerte);
+  const reihe = (wert: (m: (typeof messwerte)[number]) => number | null): DiagrammPunkt[] =>
+    duenn.map((m) => ({ t: m.zeitpunkt.getTime(), w: wert(m) }));
+  const mitGewicht = messwerte.filter((m) => m.gewichtKg !== null);
+  const letzter = mitGewicht.at(-1) ?? null;
+  const vorTag = letzter
+    ? mitGewicht.find((m) => m.zeitpunkt.getTime() >= letzter.zeitpunkt.getTime() - 24 * 60 * 60 * 1000)
+    : null;
+  return {
+    gewicht: reihe((m) => m.gewichtKg),
+    temperatur: reihe((m) => m.temperaturC),
+    feuchte: reihe((m) => m.feuchteProzent),
+    tageswerte,
+    letzterZeitpunkt: letzter?.zeitpunkt ?? null,
+    letztesGewicht: letzter?.gewichtKg ?? null,
+    aenderung24h: letzter?.gewichtKg != null && vorTag?.gewichtKg != null ? letzter.gewichtKg - vorTag.gewichtKg : null,
+  };
+}

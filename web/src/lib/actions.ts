@@ -6,6 +6,7 @@ import { fuettererAktionAusFormular } from "@/lib/fuetterer";
 import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { volkWaageSetzen } from "@/lib/waagen";
 import { heuteAlsInputWert } from "@/lib/datum";
 import { cookies } from "next/headers";
 import { basisPrisma, prisma } from "@/lib/prisma";
@@ -709,6 +710,8 @@ function zurueckZumStand(formData: FormData | undefined) {
 export async function volkAktualisieren(volkId: string, formData: FormData): Promise<FormularErgebnis> {
   const volk = await volkFelderAktualisieren(volkId, formData);
   if ("fehler" in volk) return volk;
+  // Das Feld gibt es nur, wenn der Bereich Waagen eingeschaltet ist.
+  if (formData.has("waageId")) await volkWaageSetzen(volkId, String(formData.get("waageId")));
   redirect(zurueckZumStand(formData) ? `/bienenstaende/${volk.bienenstandId}` : `/voelker/${volkId}`);
 }
 

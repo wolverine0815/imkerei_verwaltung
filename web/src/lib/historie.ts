@@ -44,6 +44,9 @@ const OHNE_PROTOKOLL = new Set([
   "VelutinaMeldung",
   "VelutinaAbruf",
   "UpdateStand",
+  "WaagenEinstellung",
+  "WaagenMesswert",
+  "WaagenTageswert",
 ]);
 
 // Felder, die nie ins Protokoll gehören.

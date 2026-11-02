@@ -15,6 +15,7 @@ import {
   IconVerlauf,
   IconAktualisieren,
   IconWabenrahmen,
+  IconWaage,
 } from "@/components/icons";
 
 // Die Punkte der Einstellungen, nach Gruppen. Daraus entstehen die Liste auf
@@ -61,6 +62,8 @@ export const EINSTELLUNGS_GRUPPEN: EinstellungsGruppe[] = [
     punkte: [
       { schluessel: "email", href: "/einstellungen/email", label: "E-Mail-Versand", icon: IconBrief, bereiche: ["dokumente", "velutina"] },
       { schluessel: "kalender", href: "/einstellungen/kalender", label: "Kalender-Abo", icon: IconKalender },
+      // Ohne `bereiche`: hier wird das Feature erst eingeschaltet.
+      { schluessel: "waagen", href: "/einstellungen/waagen", label: "Waagen", icon: IconWaage, nurAdmin: true },
     ],
   },
   {
