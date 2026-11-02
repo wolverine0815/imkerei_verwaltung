@@ -23,6 +23,8 @@ const TAG_MS = 24 * STUNDE_MS;
 const SPIELRAUM_MS = 5 * 60 * 1000;
 // So viele Stunden je Abruf neu holen, auch wenn einer ausgefallen ist.
 const NACHLADEN_TAGE = 2;
+const TAGE_JE_ANFRAGE = 14;
+const ANFRAGE_PAUSE_MS = 250;
 
 // Auf `globalThis`, weil Next.js den Code für Zeitplan und Seiten getrennt
 // bündelt. Die Sitzungen bleiben nur im Speicher, nie in der Datenbank.
@@ -75,11 +77,7 @@ async function messwerteSpeichern(waageId: string, punkte: WolfPunkt[], von: Dat
   });
 }
 
-async function tageswerteSpeichern(waageId: string, punkte: WolfPunkt[], reihenStart: string, abTag: string) {
-  const start = tagDatum(reihenStart).getTime();
-  const zeilen = punkte
-    .map((p) => ({ tag: new Date(start + p.index * TAG_MS), p }))
-    .filter(({ tag }) => tag >= tagDatum(abTag));
+async function tageswerteSpeichern(waageId: string, zeilen: { tag: Date; p: WolfPunkt }[], abTag: string) {
   await prisma.$transaction(async (tx) => {
     await tx.waagenTageswert.deleteMany({ where: { waageId, tag: { gte: tagDatum(abTag) } } });
     await tx.waagenTageswert.createMany({
@@ -97,18 +95,37 @@ async function tageswerteSpeichern(waageId: string, punkte: WolfPunkt[], reihenS
   });
 }
 
-// Tageswerte ab wann? Nach dem Einschalten und zum Jahreswechsel ab dem
-// 1. Januar (die GTS braucht jeden Tag), sonst die letzten Tage.
+// Tageswerte ab wann? Fehlen Tage seit dem 1. Januar (Einschalten, Jahreswechsel,
+// Ausfall), alles neu, denn die GTS braucht jeden Tag. Sonst die letzten Tage.
 async function tageAbTag(waageId: string, jetzt: Date): Promise<string> {
-  const jahresbeginn = `${tagInBerlin(jetzt).slice(0, 4)}-01-01`;
-  const letzter = await prisma.waagenTageswert.findFirst({
-    where: { waageId, tag: { gte: tagDatum(jahresbeginn) } },
-    orderBy: { tag: "desc" },
-    select: { tag: true },
+  const heute = tagInBerlin(jetzt);
+  const jahresbeginn = `${heute.slice(0, 4)}-01-01`;
+  const vorhanden = await prisma.waagenTageswert.count({
+    where: { waageId, tag: { gte: tagDatum(jahresbeginn), lt: tagDatum(heute) }, temperaturMittelC: { not: null } },
   });
-  if (!letzter) return jahresbeginn;
-  const ab = new Date(letzter.tag.getTime() - NACHLADEN_TAGE * TAG_MS).toISOString().slice(0, 10);
+  const noetig = Math.round((tagDatum(heute).getTime() - tagDatum(jahresbeginn).getTime()) / TAG_MS);
+  if (vorhanden < noetig) return jahresbeginn;
+  const ab = new Date(tagDatum(heute).getTime() - NACHLADEN_TAGE * TAG_MS).toISOString().slice(0, 10);
   return ab < jahresbeginn ? jahresbeginn : ab;
+}
+
+// Wolf liefert je Anfrage nur einen begrenzten Zeitraum, deshalb in Abschnitten.
+// Die Reihen stehen dabei nach dem Tag: Wolf hängt Nachbartage an, und ein Tag
+// aus einem späteren Abschnitt ersetzt einen früheren.
+async function tageHolen(sitzung: WolfSitzung, kennung: string, abTag: string, jetzt: Date) {
+  const nachTag = new Map<string, { tag: Date; p: WolfPunkt }>();
+  for (let von = tagDatum(abTag).getTime(); von < jetzt.getTime(); von += TAGE_JE_ANFRAGE * TAG_MS) {
+    const bis = new Date(Math.min(von + TAGE_JE_ANFRAGE * TAG_MS, jetzt.getTime()));
+    // Mitternacht in Berlin; eine Stunde Unterschied im Sommer füllt Wolf vorn auf.
+    const antwort = await wolfDatenHolen(sitzung, wolfMessAdresse(kennung, "day", new Date(von - 2 * STUNDE_MS), bis));
+    const start = tagDatum(tagInBerlin(new Date((antwort as { pointStart: number }).pointStart))).getTime();
+    for (const p of wolfReihenLesen(antwort)) {
+      const tag = new Date(start + p.index * TAG_MS);
+      if (tag >= tagDatum(abTag)) nachTag.set(tag.toISOString(), { tag, p });
+    }
+    if (bis.getTime() < jetzt.getTime()) await new Promise((fertig) => setTimeout(fertig, ANFRAGE_PAUSE_MS));
+  }
+  return [...nachTag.values()];
 }
 
 async function waageAbrufen(sitzung: WolfSitzung, waage: { id: string; kennung: string }, jetzt: Date) {
@@ -120,12 +137,9 @@ async function waageAbrufen(sitzung: WolfSitzung, waage: { id: string; kennung: 
 
   spur("Tageswerte vorbereiten");
   const abTag = await tageAbTag(waage.id, jetzt);
-  // Mitternacht in Berlin; eine Stunde Unterschied im Sommer füllt Wolf vorn auf.
-  const vonTagen = new Date(tagDatum(abTag).getTime() - 2 * STUNDE_MS);
-  const antwort = await wolfDatenHolen(sitzung, wolfMessAdresse(waage.kennung, "day", vonTagen, jetzt));
-  const tage = wolfReihenLesen(antwort);
+  const tage = await tageHolen(sitzung, waage.kennung, abTag, jetzt);
   spur(`Tageswerte speichern (${tage.length})`);
-  await tageswerteSpeichern(waage.id, tage, tagInBerlin(new Date((antwort as { pointStart: number }).pointStart)), abTag);
+  await tageswerteSpeichern(waage.id, tage, abTag);
 }
 
 export type AbrufErgebnis = { ok: boolean; meldung: string };
