@@ -11,9 +11,10 @@ import type { VerlaufZeile } from "@/lib/waagen";
 // die Gewichtsänderung: je Stunde als Balken (Achse links), aufsummiert ab dem
 // linken Rand als Linie (Achse rechts). Das Gesamtgewicht steht in der Legende,
 // denn die Waage gleicht Arbeiten am Volk nur in der Änderung aus. Die Legende ist immer
-// da: Sie zeigt die Werte zur Mausposition samt Änderung des ganzen Tages, sonst
+// da: Sie zeigt die Werte zur Mausposition, sonst
 // die jüngsten, und weicht in die Ecke gegenüber der Maus aus. Der Tag unter der
-// Maus ist hinterlegt. Am Handy deckt die Legende das Diagramm zu und ist deshalb
+// Maus ist hinterlegt. Unten im Diagramm steht je Tag die Gesamtänderung, im
+// Vergleich zweier Waagen stattdessen in der Legende. Am Handy deckt die Legende das Diagramm zu und ist deshalb
 // erst aus, ein Knopf schaltet sie. Ohne Wert reißt die Linie ab. Sichtbar sind 7 Tage, am Handy 3, die
 // übrigen erreicht man durch Ziehen; die Y-Achsen gelten für alle Daten, damit
 // die Linien dabei nicht springen. Nur die Summe hängt vom sichtbaren Zeitraum ab.
@@ -438,6 +439,18 @@ export function WaagenDiagramm({ titel, zeilen: quelle, zweite }: { titel: strin
     ? [alleTage.findLast((t) => t <= aktiv.t) ?? von, alleTage.find((t) => t > aktiv.t) ?? bis]
     : null;
 
+  // Je sichtbarem Tag die Gesamtänderung. Ein Tag, von dem am Rand nur ein Stück zu
+  // sehen ist, bekommt keine: Das Fähnchen stünde abgeschnitten am Rand.
+  const grenzen = [von, ...tage, bis];
+  const fahnen = zweite
+    ? []
+    : grenzen.slice(1).flatMap((tagesEnde, i) => {
+        const tagesAnfang = grenzen[i];
+        const zeile = sicht.find((z) => z.t >= tagesAnfang && z.t < tagesEnde);
+        if (tagesEnde - tagesAnfang < TAG_MS * 0.4 || !zeile) return [];
+        return [{ mitte: (tagesAnfang + tagesEnde) / 2, wert: zeile.tagesAenderung }];
+      });
+
   return (
     <figure>
       <figcaption className="flex items-center justify-between gap-3 text-sm">
@@ -491,6 +504,16 @@ export function WaagenDiagramm({ titel, zeilen: quelle, zweite }: { titel: strin
             />
           ))}
 
+          {fahnen.map((fahne) => (
+            <span
+              key={fahne.mitte}
+              className="pointer-events-none absolute bottom-1.5 -translate-x-1/2 rounded border border-border bg-card/90 px-1 py-px text-[11px] leading-tight font-medium whitespace-nowrap tabular-nums"
+              style={{ left: `${((fahne.mitte - von) / (bis - von || 1)) * 100}%` }}
+            >
+              {zahl(fahne.wert, 2, true)} kg
+            </span>
+          ))}
+
           {legende.an && <dl
             className="pointer-events-none absolute z-10 grid grid-cols-[auto_auto] gap-x-3 rounded-md border border-border bg-card/90 px-2.5 py-1.5 text-xs shadow-md"
             style={{ [maus && maus.x > 0.5 ? "left" : "right"]: 6, [maus && maus.y < 0.5 ? "bottom" : "top"]: 6 }}
@@ -513,12 +536,8 @@ export function WaagenDiagramm({ titel, zeilen: quelle, zweite }: { titel: strin
               <>
                 <dd className="text-muted">B Gewicht</dd>
                 <dd className="text-right font-medium tabular-nums">{zahl(aktiv.gewichtB, 2)} kg</dd>
-              </>
-            )}
-            <dd className="mt-0.5 border-t border-border pt-0.5 font-semibold">{zweite ? "A Änderung Tag" : "Änderung Tag"}</dd>
-            <dd className="mt-0.5 border-t border-border pt-0.5 text-right font-semibold tabular-nums">{zahl(aktiv.tagesAenderung, 2, true)} kg</dd>
-            {zweite && (
-              <>
+                <dd className="mt-0.5 border-t border-border pt-0.5 font-semibold">A Änderung Tag</dd>
+                <dd className="mt-0.5 border-t border-border pt-0.5 text-right font-semibold tabular-nums">{zahl(aktiv.tagesAenderung, 2, true)} kg</dd>
                 <dd className="font-semibold">B Änderung Tag</dd>
                 <dd className="text-right font-semibold tabular-nums">{zahl(aktiv.tagesAenderungB, 2, true)} kg</dd>
               </>
