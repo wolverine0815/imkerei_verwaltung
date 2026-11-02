@@ -14,7 +14,7 @@ import type { VerlaufZeile } from "@/lib/waagen";
 // da: Sie zeigt die Werte zur Mausposition samt Änderung des ganzen Tages, sonst
 // die jüngsten, und weicht in die Ecke gegenüber der Maus aus. Der Tag unter der
 // Maus ist hinterlegt. Am Handy deckt die Legende das Diagramm zu und ist deshalb
-// erst aus, ein Knopf schaltet sie. Ohne Wert reißt die Linie ab. Sichtbar sind 7 Tage, die
+// erst aus, ein Knopf schaltet sie. Ohne Wert reißt die Linie ab. Sichtbar sind 7 Tage, am Handy 3, die
 // übrigen erreicht man durch Ziehen; die Y-Achsen gelten für alle Daten, damit
 // die Linien dabei nicht springen. Nur die Summe hängt vom sichtbaren Zeitraum ab.
 //
@@ -25,6 +25,8 @@ const BREITE = 600;
 const STUNDE_MS = 60 * 60 * 1000;
 const TAG_MS = 24 * STUNDE_MS;
 const FENSTER_MS = 7 * TAG_MS;
+// Am Handy reicht die Breite für 7 Tage nicht.
+const FENSTER_SCHMAL_MS = 3 * TAG_MS;
 const RAND = 6;
 
 // Am 2.11.2026 mit dem Farbprüfer der Diagramm-Leitlinien geprüft (auch für
@@ -189,10 +191,14 @@ function schmalBeobachten(melden: () => void) {
   return () => abfrage.removeEventListener("change", melden);
 }
 
-// Legende ein oder aus: von Hand gewählt, sonst nach Bildschirmbreite. Beim
-// Server-Rendern ist die Breite unbekannt, dann gilt erst die breite Ansicht.
+// Beim Server-Rendern ist die Breite unbekannt, dann gilt erst die breite Ansicht.
+function useSchmal() {
+  return useSyncExternalStore(schmalBeobachten, () => window.matchMedia(SCHMAL).matches, () => false);
+}
+
+// Legende ein oder aus: von Hand gewählt, sonst nach Bildschirmbreite.
 export function useLegende() {
-  const schmal = useSyncExternalStore(schmalBeobachten, () => window.matchMedia(SCHMAL).matches, () => false);
+  const schmal = useSchmal();
   const [wahl, setWahl] = useState<boolean | null>(null);
   const an = wahl ?? !schmal;
   return { an, umschalten: () => setWahl(!an) };
@@ -359,8 +365,9 @@ export function WaagenDiagramm({ titel, zeilen: quelle, zweite }: { titel: strin
 
   const erste = zeilen[0]?.t ?? 0;
   const letzte = zeilen[zeilen.length - 1]?.t ?? 0;
-  const spanne = Math.min(FENSTER_MS, letzte - erste || 1);
-  const ziehbar = letzte - erste > FENSTER_MS;
+  const fenster = useSchmal() ? FENSTER_SCHMAL_MS : FENSTER_MS;
+  const spanne = Math.min(fenster, letzte - erste || 1);
+  const ziehbar = letzte - erste > fenster;
   const bis = Math.min(letzte, Math.max(erste + spanne, ende ?? letzte));
   const von = bis - spanne;
 
