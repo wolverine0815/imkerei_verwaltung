@@ -3,7 +3,6 @@ import { kontoSchemas } from "@/lib/velutina";
 import { MESSWERTE_TAGE, tagInBerlin, waagenEinstellungLaden } from "@/lib/waagen";
 import {
   WolfSitzungAbgelaufen,
-  spur,
   wolfHatDaten,
   wolfAnmelden,
   wolfDatenHolen,
@@ -150,13 +149,10 @@ async function waageAbrufen(
   });
   const vonStunden = new Date(jetzt.getTime() - (hatMesswerte ? NACHLADEN_TAGE : MESSWERTE_TAGE) * TAG_MS);
   const stunden = wolfReihenLesen(await wolfDatenHolen(sitzung, wolfMessAdresse(waage.kennung, "hour", vonStunden, jetzt)));
-  spur(`Messwerte speichern (${stunden.length})`);
   await messwerteSpeichern(waage.id, stunden, vonStunden, jetzt);
 
-  spur("Tageswerte vorbereiten");
   const abTag = await tageAbTag(waage, jetzt);
   const tage = await tageHolen(sitzung, waage.kennung, abTag, jetzt);
-  spur(`Tageswerte speichern (${tage.length})`);
   await tageswerteSpeichern(waage.id, tage, abTag);
   const jahr = Number(tagInBerlin(jetzt).slice(0, 4));
   if (waage.tageGeladenJahr !== jahr) {
@@ -168,9 +164,7 @@ export type AbrufErgebnis = { ok: boolean; meldung: string };
 
 // Für das angemeldete oder per mitSchema gewählte Konto.
 export async function waagenAbrufen(): Promise<AbrufErgebnis> {
-  spur("Start");
   const einstellung = await waagenEinstellungLaden();
-  spur("Einstellung geladen");
   if (!einstellung?.aktiv) return { ok: false, meldung: "Der Bereich Waagen ist ausgeschaltet." };
   const benutzer = einstellung.benutzer;
   const passwort = einstellung.passwort;
@@ -182,9 +176,7 @@ export async function waagenAbrufen(): Promise<AbrufErgebnis> {
 
   const jetzt = new Date();
   await prisma.waagenEinstellung.update({ where: { id: "standard" }, data: { letzterVersuch: jetzt } });
-  spur("Versuch vermerkt");
   const waagen = await prisma.waage.findMany({ select: { id: true, kennung: true, tageGeladenJahr: true } });
-  spur(`${waagen.length} Waagen`);
 
   const fehler: string[] = [];
   for (const waage of waagen) {
@@ -195,7 +187,6 @@ export async function waagenAbrufen(): Promise<AbrufErgebnis> {
     }
   }
 
-  spur(`Waagen fertig, ${fehler.length} Fehler`);
   const meldung = fehler.join(" · ").slice(0, 500) || null;
   await prisma.waagenEinstellung.update({
     where: { id: "standard" },

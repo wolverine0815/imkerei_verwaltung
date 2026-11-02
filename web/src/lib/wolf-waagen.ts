@@ -3,8 +3,6 @@
 // offizielle API: Ändert Wolf sie, schlägt der Abruf mit einer Meldung fehl.
 // Ohne Abhängigkeiten, damit es sich auch außerhalb der App prüfen lässt.
 
-import { writeSync } from "node:fs";
-
 export const WOLF_BASIS = "https://app.wolf-waagen.de";
 
 // Werte nahe 0 kg sind keine Gewichtsmessung und sollen das Diagramm nicht
@@ -93,11 +91,6 @@ export function wolfMessAdresse(kennung: string, intervall: "hour" | "day", von:
 
 const ZEITLIMIT_MS = 30_000;
 
-// Vorübergehend, zum Eingrenzen des Absturzes: schreibt sofort ins Log, damit
-// die Zeile auch ein SIGSEGV übersteht. Nie Zugangsdaten übergeben.
-export function spur(schritt: string) {
-  writeSync(2, `Waagen-Abruf: ${schritt}\n`);
-}
 
 export class WolfSitzungAbgelaufen extends Error {}
 
@@ -133,14 +126,12 @@ export function tokenAusSeite(html: string): string | null {
 export async function wolfAnmelden(email: string, passwort: string): Promise<WolfSitzung> {
   const cookies = new Map<string, string>();
 
-  spur("Login-Seite");
   const seite = await fetch(`${WOLF_BASIS}/login`, { cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(ZEITLIMIT_MS) });
   cookiesMerken(seite, cookies);
   const token = tokenAusSeite(await seite.text());
   const xsrf = cookies.get("XSRF-TOKEN");
   if (!token && !xsrf) throw new Error("Wolf-Anmeldung: Token nicht erhalten.");
 
-  spur("Anmeldung");
   const anmeldung = await fetch(`${WOLF_BASIS}/public/login`, {
     method: "POST",
     cache: "no-store",
@@ -165,7 +156,6 @@ export async function wolfAnmelden(email: string, passwort: string): Promise<Wol
 }
 
 export async function wolfDatenHolen(sitzung: WolfSitzung, adresse: string): Promise<unknown> {
-  spur("Daten holen");
   const antwort = await fetch(adresse, {
     cache: "no-store",
     headers: kopfzeilen(sitzung.cookies),
