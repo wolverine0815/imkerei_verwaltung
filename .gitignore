@@ -26,3 +26,8 @@ $RECYCLE.BIN/
 *.key
 *.pem
 geheim/
+
+# --- Claude Code ---
+# Lokale Notizen, gehoeren nicht ins Repository.
+CLAUDE.md
+PROJEKTVERLAUF.md
