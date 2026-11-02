@@ -7,8 +7,9 @@ import { writeSync } from "node:fs";
 
 export const WOLF_BASIS = "https://app.wolf-waagen.de";
 
-// Unter diesem Gewicht steht nichts auf der Waage: Wolf meldet dann fast 0 kg
-// (Beute abgehoben), das soll das Diagramm nicht stauchen.
+// Werte nahe 0 kg sind keine Gewichtsmessung und sollen das Diagramm nicht
+// stauchen. Kurze Sprünge beim Arbeiten am Volk bleiben im Gewicht sichtbar; die
+// Waage gleicht sie per Schlüsseldrehung aus, im Ertrag (yield) stehen sie nicht.
 const MINDESTGEWICHT_KG = 1;
 
 export type WolfPunkt = {
