@@ -910,3 +910,20 @@ table {
   pointer-events: none;
   opacity: 0.5;
 }
+
+/* Der Knopf der nativen Dateiauswahl ist sonst kaum als Knopf zu erkennen,
+   im dunklen Design erscheint er fast als reiner Text. */
+input[type="file"]::file-selector-button {
+  min-height: 2.75rem;
+  margin-right: 0.75rem;
+  padding: 0 1rem;
+  border: 1px solid var(--color-accent);
+  border-radius: 0.375rem;
+  background: var(--color-accent);
+  color: var(--color-accent-foreground);
+  font-weight: 500;
+  cursor: pointer;
+}
+input[type="file"]::file-selector-button:hover {
+  opacity: 0.9;
+}
