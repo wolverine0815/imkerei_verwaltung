@@ -2,12 +2,12 @@ import Link from "next/link";
 import { Card } from "@/components/ui";
 import { GtsKarte } from "@/components/gts-karte";
 import { SeitenNavigation } from "@/components/seiten-navigation";
-import { WaagenDiagramm } from "@/components/waagen-diagramm";
+import { WaagenVergleich, type AuswertungsWaage } from "@/components/waagen-vergleich";
 import { bereichPflicht } from "@/lib/bereiche";
 import { prisma } from "@/lib/prisma";
-import { MESSWERTE_TAGE, waagenVerlaufLaden } from "@/lib/waagen";
+import { waagenVerlaufLaden } from "@/lib/waagen";
 
-// Waagenauswertung: alle Waagen nach Stand, je Stand die Grünlandtemperatursumme.
+// Waagenauswertung: Vergleich der Waagen, darunter je Stand die GTS.
 export default async function WaagenPage() {
   await bereichPflicht("waagen");
 
@@ -15,7 +15,18 @@ export default async function WaagenPage() {
     orderBy: { createdAt: "asc" },
     include: { volk: { select: { id: true, name: true, bienenstand: { select: { id: true, name: true } } } } },
   });
-  const verlaeufe = await Promise.all(waagen.map((waage) => waagenVerlaufLaden(waage.id)));
+  const [verlaeufe, tageswerte] = await Promise.all([
+    Promise.all(waagen.map((waage) => waagenVerlaufLaden(waage.id))),
+    prisma.waagenTageswert.findMany({ orderBy: { tag: "asc" }, select: { waageId: true, tag: true, gewichtKg: true } }),
+  ]);
+
+  const auswertung: AuswertungsWaage[] = waagen.map((waage, i) => ({
+    id: waage.id,
+    name: waage.name || waage.kennung,
+    wo: waage.volk ? `${waage.volk.name} · ${waage.volk.bienenstand.name}` : "keinem Volk zugeordnet",
+    zeilen: verlaeufe[i].zeilen,
+    tage: tageswerte.filter((t) => t.waageId === waage.id).map((t) => ({ t: t.tag.getTime(), w: t.gewichtKg })),
+  }));
 
   const staende = new Map<string, { id: string; name: string }>();
   for (const waage of waagen) {
@@ -27,7 +38,7 @@ export default async function WaagenPage() {
       <div>
         <SeitenNavigation className="mb-2" />
         <h1 className="text-2xl font-semibold tracking-tight">Waagen</h1>
-        <p className="text-sm text-muted">Gewicht der letzten {MESSWERTE_TAGE} Tage und Grünlandtemperatursumme je Stand.</p>
+        <p className="text-sm text-muted">Verlauf und Vergleich der Waagen, Grünlandtemperatursumme je Stand.</p>
       </div>
 
       {waagen.length === 0 && (
@@ -37,30 +48,20 @@ export default async function WaagenPage() {
         </Card>
       )}
 
+      {auswertung.length > 0 && (
+        <Card>
+          <WaagenVergleich waagen={auswertung} />
+        </Card>
+      )}
+
       {[...staende.values()].map((stand) => (
         <section key={stand.id} className="flex flex-col gap-3">
           <h2 className="text-xl font-semibold">
             <Link href={`/bienenstaende/${stand.id}`} className="hover:underline">{stand.name}</Link>
           </h2>
-          <GtsKarte bienenstandId={stand.id} auswahl />
-          {waagen.map((waage, i) =>
-            waage.volk?.bienenstand.id === stand.id ? (
-              <Card key={waage.id}>
-                <WaagenDiagramm
-                  titel={`${waage.name || waage.kennung} · ${waage.volk.name}`}
-                  zeilen={verlaeufe[i].zeilen}
-                />
-              </Card>
-            ) : null,
-          )}
+          <GtsKarte bienenstandId={stand.id} />
         </section>
       ))}
-
-      {waagen.some((waage) => !waage.volk) && (
-        <p className="text-sm text-muted">
-          {waagen.filter((waage) => !waage.volk).map((waage) => waage.name || waage.kennung).join(", ")}: keinem Volk zugeordnet.
-        </p>
-      )}
     </div>
   );
 }

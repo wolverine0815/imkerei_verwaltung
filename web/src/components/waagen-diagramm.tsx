@@ -15,6 +15,9 @@ import type { VerlaufZeile } from "@/lib/waagen";
 // Maus ist hinterlegt. Ohne Wert reißt die Linie ab. Sichtbar sind 7 Tage, die
 // übrigen erreicht man durch Ziehen; die Y-Achsen gelten für alle Daten, damit
 // die Linien dabei nicht springen. Nur die Summe hängt vom sichtbaren Zeitraum ab.
+//
+// Mit `zweite` zeigt es zwei Waagen A und B: gleiche Größen teilen sich die Achse,
+// B ist gestrichelt und in eigener Farbe, Balken stehen nebeneinander.
 
 const BREITE = 600;
 const STUNDE_MS = 60 * 60 * 1000;
@@ -32,15 +35,22 @@ const FARBE_REGEN = "#2f8fe0";
 // unterscheiden sich aber schon durch die Form.
 const FARBE_AENDERUNG = "#3dbd8f";
 const FARBE_SUMME = "#7c9a0e";
+// Waage B im Vergleich.
+const FARBE_TEMPERATUR_B = "#c97420";
+const FARBE_FEUCHTE_B = "#b0479e";
+const FARBE_REGEN_B = "#1fa8bf";
+const FARBE_AENDERUNG_B = "#c23f7a";
+const FARBE_SUMME_B = "#2f7fb5";
 
 // Hebt die Diagrammfläche von der Karte ab: im dunklen Design etwas heller, im
 // hellen etwas dunkler.
-const FLAECHE = "color-mix(in srgb, var(--color-foreground) 7%, var(--color-card))";
+export const FLAECHE = "color-mix(in srgb, var(--color-foreground) 7%, var(--color-card))";
 
-type Schluessel = "aenderung" | "summe" | "temperatur" | "feuchte" | "regen";
+type Wert = "aenderung" | "summe" | "temperatur" | "feuchte" | "regen";
+type Schluessel = Wert | `${Wert}B`;
 
-// Summe der stündlichen Änderung, siehe WaagenDiagramm.
-type Zeile = VerlaufZeile & { summe: number | null };
+// Eine Zeit mit den Werten von Waage A und, im Vergleich, Waage B.
+type Zeile = { t: number; gewicht: number | null; gewichtB: number | null; tagesAenderung: number | null; tagesAenderungB: number | null } & Record<Schluessel, number | null>;
 
 type Reihe = {
   schluessel: Schluessel;
@@ -53,12 +63,20 @@ type Reihe = {
   mitNull?: boolean;
   // Maßstab nur aus dem sichtbaren Zeitraum.
   fenster?: boolean;
+  // Waage B im Vergleich.
+  zweite?: boolean;
+  // Diese Reihen teilen sich einen Maßstab (A und B derselben Größe).
+  skala?: Schluessel[];
+  // Balken: Versatz in Balkenbreiten, damit A und B nebeneinander stehen.
+  versatz?: number;
   // Fester Maßstab; sonst aus den Werten.
   min?: number;
   max?: number;
 };
 
-const BEREICHE: { hoehe: number; reihen: Reihe[] }[] = [
+type Bereich = { hoehe: number; reihen: Reihe[] };
+
+const BEREICHE: Bereich[] = [
   {
     hoehe: 170,
     reihen: [
@@ -76,7 +94,81 @@ const BEREICHE: { hoehe: number; reihen: Reihe[] }[] = [
   },
 ];
 
-const ALLE_REIHEN = BEREICHE.flatMap((bereich) => bereich.reihen);
+const FARBEN_B: Record<Wert, string> = {
+  temperatur: FARBE_TEMPERATUR_B,
+  feuchte: FARBE_FEUCHTE_B,
+  regen: FARBE_REGEN_B,
+  aenderung: FARBE_AENDERUNG_B,
+  summe: FARBE_SUMME_B,
+};
+
+// Dieselben Bereiche mit den Reihen beider Waagen.
+const BEREICHE_ZWEI: Bereich[] = BEREICHE.map((bereich) => ({
+  ...bereich,
+  reihen: [
+    ...bereich.reihen.map((reihe) => ({
+      ...reihe,
+      label: `A ${reihe.label}`,
+      skala: [reihe.schluessel, `${reihe.schluessel}B` as Schluessel],
+      versatz: reihe.balken ? -0.5 : undefined,
+    })),
+    ...bereich.reihen.map((reihe) => ({
+      ...reihe,
+      schluessel: `${reihe.schluessel}B` as Schluessel,
+      label: `B ${reihe.label}`,
+      farbe: FARBEN_B[reihe.schluessel as Wert],
+      zweite: true,
+      skala: [reihe.schluessel, `${reihe.schluessel}B` as Schluessel],
+      versatz: reihe.balken ? 0.5 : undefined,
+    })),
+  ],
+}));
+
+const LEER: Record<Schluessel, null> = {
+  temperatur: null,
+  feuchte: null,
+  regen: null,
+  aenderung: null,
+  summe: null,
+  temperaturB: null,
+  feuchteB: null,
+  regenB: null,
+  aenderungB: null,
+  summeB: null,
+};
+
+// Führt beide Waagen nach der Zeit zusammen und summiert die Änderung.
+function zeilenBauen(a: VerlaufZeile[], b: VerlaufZeile[] | undefined): Zeile[] {
+  const nachZeit = new Map<number, Zeile>();
+  const zeile = (t: number) => {
+    const vorhanden = nachZeit.get(t);
+    if (vorhanden) return vorhanden;
+    const neu: Zeile = { t, gewicht: null, gewichtB: null, tagesAenderung: null, tagesAenderungB: null, ...LEER };
+    nachZeit.set(t, neu);
+    return neu;
+  };
+  for (const z of a) Object.assign(zeile(z.t), z);
+  for (const z of b ?? []) {
+    Object.assign(zeile(z.t), {
+      gewichtB: z.gewicht,
+      tagesAenderungB: z.tagesAenderung,
+      temperaturB: z.temperatur,
+      feuchteB: z.feuchte,
+      regenB: z.regen,
+      aenderungB: z.aenderung,
+    });
+  }
+  const liste = [...nachZeit.values()].sort((x, y) => x.t - y.t);
+  let summe = 0;
+  let summeB = 0;
+  for (const z of liste) {
+    summe += z.aenderung ?? 0;
+    summeB += z.aenderungB ?? 0;
+    z.summe = summe;
+    z.summeB = b ? summeB : null;
+  }
+  return liste;
+}
 
 const zeitFormat = new Intl.DateTimeFormat("de-DE", {
   day: "2-digit",
@@ -87,7 +179,7 @@ const zeitFormat = new Intl.DateTimeFormat("de-DE", {
 });
 const tagFormat = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", timeZone: "Europe/Berlin" });
 
-function zahl(wert: number | null, stellen: number, vorzeichen = false) {
+export function zahl(wert: number | null, stellen: number, vorzeichen = false) {
   if (wert === null) return "–";
   return wert.toLocaleString("de-DE", {
     minimumFractionDigits: stellen,
@@ -97,7 +189,7 @@ function zahl(wert: number | null, stellen: number, vorzeichen = false) {
 }
 
 // Runde Achsenschritte (1, 2, 5, 10, ...), der Maßstab reicht bis zum nächsten.
-function runderSchritt(spanne: number, schritte: number) {
+export function runderSchritt(spanne: number, schritte: number) {
   const roh = spanne / schritte;
   const basis = 10 ** Math.floor(Math.log10(roh));
   const faktor = [1, 2, 5, 10].find((f) => f * basis >= roh) ?? 10;
@@ -105,7 +197,7 @@ function runderSchritt(spanne: number, schritte: number) {
 }
 
 function massstab(zeilen: Zeile[], reihe: Reihe, schritte: number) {
-  const werte = zeilen.flatMap((z) => (z[reihe.schluessel] === null ? [] : [z[reihe.schluessel] as number]));
+  const werte = zeilen.flatMap((z) => (reihe.skala ?? [reihe.schluessel]).flatMap((s) => (z[s] === null ? [] : [z[s] as number])));
   const grenzen = reihe.mitNull ? [...werte, 0] : werte;
   const roh = {
     min: reihe.min ?? (grenzen.length ? Math.min(...grenzen) : 0),
@@ -166,11 +258,11 @@ function BereichGrafik({
         const y = (w: number) => yAnteil(w, min, max, hoehe);
         if (reihe.balken) {
           const nulllinie = y(Math.max(min, 0));
-          const breite = Math.max(1.5, (BREITE / zeilen.length) * 0.7);
+          const breite = Math.max(1.5, (BREITE / zeilen.length) * (reihe.versatz ? 0.4 : 0.7));
           return zeilen.map((z) => {
             const w = z[reihe.schluessel];
             if (!w) return null;
-            return <rect key={`${reihe.schluessel}-${z.t}`} x={x(z.t) - breite / 2} y={Math.min(y(w), nulllinie)} width={breite} height={Math.abs(nulllinie - y(w))} fill={reihe.farbe} />;
+            return <rect key={`${reihe.schluessel}-${z.t}`} x={x(z.t) - breite / 2 + breite * (reihe.versatz ?? 0)} y={Math.min(y(w), nulllinie)} width={breite} height={Math.abs(nulllinie - y(w))} fill={reihe.farbe} />;
           });
         }
         let d = "";
@@ -184,7 +276,7 @@ function BereichGrafik({
           d += `${offen ? "L" : "M"}${x(z.t).toFixed(1)} ${y(w).toFixed(1)}`;
           offen = true;
         }
-        return <path key={reihe.schluessel} d={d} fill="none" stroke={reihe.farbe} strokeWidth="2" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />;
+        return <path key={reihe.schluessel} d={d} fill="none" stroke={reihe.farbe} strokeWidth="2" strokeDasharray={reihe.zweite ? "6 3" : undefined} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />;
       })}
       {aktivT !== null && (
         <line x1={x(aktivT)} x2={x(aktivT)} y1="0" y2={hoehe} stroke="var(--color-muted)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
@@ -212,7 +304,7 @@ function YAchse({ zeilen, hoehe, reihe, ausrichtung }: { zeilen: Zeile[]; hoehe:
 }
 
 // Mitternacht je Tag im Bereich (Berlin), für Gitter und Zeitachse.
-function tagesWechsel(zeilen: VerlaufZeile[]) {
+function tagesWechsel(zeilen: { t: number }[]) {
   const wechsel: number[] = [];
   zeilen.forEach((zeile, i) => {
     if (i > 0 && tagFormat.format(zeile.t) !== tagFormat.format(zeilen[i - 1].t)) wechsel.push(zeile.t);
@@ -220,11 +312,15 @@ function tagesWechsel(zeilen: VerlaufZeile[]) {
   return wechsel;
 }
 
-export function WaagenDiagramm({ titel, zeilen }: { titel: string; zeilen: VerlaufZeile[] }) {
+export function WaagenDiagramm({ titel, zeilen: quelle, zweite }: { titel: string; zeilen: VerlaufZeile[]; zweite?: VerlaufZeile[] }) {
   const [maus, setMaus] = useState<{ x: number; y: number } | null>(null);
   // Rechter Rand des Fensters, null = immer die neuesten Werte.
   const [ende, setEnde] = useState<number | null>(null);
   const ziehen = useRef<{ x: number; ende: number; bewegt: boolean } | null>(null);
+
+  const bereiche = zweite ? BEREICHE_ZWEI : BEREICHE;
+  const alleReihen = bereiche.flatMap((bereich) => bereich.reihen);
+  const zeilen = useMemo(() => zeilenBauen(quelle, zweite), [quelle, zweite]);
 
   const erste = zeilen[0]?.t ?? 0;
   const letzte = zeilen[zeilen.length - 1]?.t ?? 0;
@@ -235,24 +331,20 @@ export function WaagenDiagramm({ titel, zeilen }: { titel: string; zeilen: Verla
 
   const alleTage = useMemo(() => tagesWechsel(zeilen), [zeilen]);
   const tage = useMemo(() => alleTage.filter((t) => t > von && t < bis), [alleTage, von, bis]);
-  const mitSumme = useMemo(() => {
-    const liste: (VerlaufZeile & { summe: number })[] = [];
-    for (const z of zeilen) liste.push({ ...z, summe: (liste.at(-1)?.summe ?? 0) + (z.aenderung ?? 0) });
-    return liste;
-  }, [zeilen]);
   // Je eine Stunde mehr, damit die Linie bis an den Rand reicht. Die Summe beginnt
   // am linken Rand bei 0.
   const sicht = useMemo(() => {
-    const basis = mitSumme.findLast((z) => z.t < von)?.summe ?? 0;
-    return mitSumme
+    const davor = zeilen.findLast((z) => z.t < von);
+    const relativ = (wert: number | null, basis: number | null | undefined) => (wert === null ? null : wert - (basis ?? 0));
+    return zeilen
       .filter((z) => z.t >= von - STUNDE_MS && z.t <= bis + STUNDE_MS)
-      .map((z) => ({ ...z, summe: z.summe - basis }));
-  }, [mitSumme, von, bis]);
+      .map((z) => ({ ...z, summe: relativ(z.summe, davor?.summe), summeB: relativ(z.summeB, davor?.summeB) }));
+  }, [zeilen, von, bis]);
 
   const aktiv = useMemo(() => {
     const innen = sicht.filter((z) => z.t >= von && z.t <= bis);
     if (innen.length === 0) return null;
-    if (!maus) return innen.findLast((z) => z.gewicht !== null) ?? innen[innen.length - 1];
+    if (!maus) return innen.findLast((z) => z.gewicht !== null || z.gewichtB !== null) ?? innen[innen.length - 1];
     const ziel = von + maus.x * (bis - von);
     return innen.reduce((beste, z) => (Math.abs(z.t - ziel) < Math.abs(beste.t - ziel) ? z : beste));
   }, [maus, sicht, von, bis]);
@@ -314,7 +406,7 @@ export function WaagenDiagramm({ titel, zeilen }: { titel: string; zeilen: Verla
         </span>
       </figcaption>
       <ul className="mt-1 mb-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
-        {ALLE_REIHEN.map((reihe) => (
+        {alleReihen.map((reihe) => (
           <li key={reihe.schluessel} className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: reihe.farbe }} aria-hidden="true" />
             {reihe.label} ({reihe.einheit})
@@ -324,8 +416,8 @@ export function WaagenDiagramm({ titel, zeilen }: { titel: string; zeilen: Verla
 
       <div className="grid grid-cols-[2.25rem_minmax(0,1fr)_2rem]">
         <div className="flex flex-col gap-1">
-          {BEREICHE.map((bereich) => (
-            <YAchse key={bereich.reihen[0].schluessel} zeilen={mitSumme} hoehe={bereich.hoehe} reihe={bereich.reihen[0]} ausrichtung="links" />
+          {bereiche.map((bereich) => (
+            <YAchse key={bereich.reihen[0].schluessel} zeilen={zeilen} hoehe={bereich.hoehe} reihe={bereich.reihen[0]} ausrichtung="links" />
           ))}
         </div>
 
@@ -339,11 +431,11 @@ export function WaagenDiagramm({ titel, zeilen }: { titel: string; zeilen: Verla
             if (!ziehen.current) setMaus(null);
           }}
         >
-          {BEREICHE.map((bereich) => (
+          {bereiche.map((bereich) => (
             <BereichGrafik
               key={bereich.reihen[0].schluessel}
               zeilen={sicht}
-              alle={mitSumme}
+              alle={zeilen}
               von={von}
               bis={bis}
               hoehe={bereich.hoehe}
@@ -359,7 +451,7 @@ export function WaagenDiagramm({ titel, zeilen }: { titel: string; zeilen: Verla
             style={{ [maus && maus.x > 0.5 ? "left" : "right"]: 6, [maus && maus.y < 0.5 ? "bottom" : "top"]: 6 }}
           >
             <dt className="col-span-2 mb-0.5 font-semibold">{zeitFormat.format(aktiv.t)}</dt>
-            {ALLE_REIHEN.map((reihe) => (
+            {alleReihen.map((reihe) => (
               <div key={reihe.schluessel} className="contents">
                 <dd className="flex items-center gap-1.5 text-muted">
                   <span className="h-2 w-2 rounded-full" style={{ background: reihe.farbe }} aria-hidden="true" />
@@ -370,18 +462,30 @@ export function WaagenDiagramm({ titel, zeilen }: { titel: string; zeilen: Verla
                 </dd>
               </div>
             ))}
-            <dd className="text-muted">Gewicht</dd>
+            <dd className="text-muted">{zweite ? "A Gewicht" : "Gewicht"}</dd>
             <dd className="text-right font-medium tabular-nums">{zahl(aktiv.gewicht, 2)} kg</dd>
-            <dd className="mt-0.5 border-t border-border pt-0.5 font-semibold">Änderung Tag</dd>
+            {zweite && (
+              <>
+                <dd className="text-muted">B Gewicht</dd>
+                <dd className="text-right font-medium tabular-nums">{zahl(aktiv.gewichtB, 2)} kg</dd>
+              </>
+            )}
+            <dd className="mt-0.5 border-t border-border pt-0.5 font-semibold">{zweite ? "A Änderung Tag" : "Änderung Tag"}</dd>
             <dd className="mt-0.5 border-t border-border pt-0.5 text-right font-semibold tabular-nums">{zahl(aktiv.tagesAenderung, 2, true)} kg</dd>
+            {zweite && (
+              <>
+                <dd className="font-semibold">B Änderung Tag</dd>
+                <dd className="text-right font-semibold tabular-nums">{zahl(aktiv.tagesAenderungB, 2, true)} kg</dd>
+              </>
+            )}
           </dl>
         </div>
 
         <div className="flex flex-col gap-1">
-          {BEREICHE.map((bereich) => (
+          {bereiche.map((bereich) => (
             <YAchse
               key={bereich.reihen[0].schluessel}
-              zeilen={bereich.reihen[1]?.fenster ? sicht : mitSumme}
+              zeilen={bereich.reihen[1]?.fenster ? sicht : zeilen}
               hoehe={bereich.hoehe}
               reihe={bereich.reihen[1]?.balken ? undefined : bereich.reihen[1]}
               ausrichtung="rechts"
