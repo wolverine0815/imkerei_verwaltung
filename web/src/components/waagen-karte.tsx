@@ -21,7 +21,7 @@ export async function WaagenKarte({ waage }: { waage: { id: string; kennung: str
 
   return (
     <Card>
-      <h2 className="text-lg font-semibold">Waage {waage.name || waage.kennung}</h2>
+      <h2 className="text-lg font-semibold">{waage.name || `Waage ${waage.kennung}`}</h2>
       {stand ? (
         <p className="mb-3 text-sm text-muted">
           <span className="font-semibold text-foreground">{zahl(verlauf.letztesGewicht, 2)} kg</span>
