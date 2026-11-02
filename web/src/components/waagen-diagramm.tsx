@@ -27,7 +27,11 @@ const RAND = 6;
 // stehen deshalb immer auch als Text in Legende und Tabelle.
 const FARBE_TEMPERATUR = "#c8483c";
 const FARBE_FEUCHTE = "#7a55d6";
-const FARBE_REGEN = "#1a9a8a";
+const FARBE_REGEN = "#2f8fe0";
+// Die beiden Grüntöne wie bei Wolf. Sie liegen dicht beieinander, Balken und Linie
+// unterscheiden sich aber schon durch die Form.
+const FARBE_AENDERUNG = "#3dbd8f";
+const FARBE_SUMME = "#7c9a0e";
 
 // Hebt die Diagrammfläche von der Karte ab: im dunklen Design etwas heller, im
 // hellen etwas dunkler.
@@ -66,8 +70,8 @@ const BEREICHE: { hoehe: number; reihen: Reihe[] }[] = [
   {
     hoehe: 170,
     reihen: [
-      { schluessel: "aenderung", label: "Änderung je Stunde", einheit: "kg", farbe: "var(--color-accent)", stellen: 2, balken: true, mitNull: true },
-      { schluessel: "summe", label: "Summe im Zeitraum", einheit: "kg", farbe: "var(--color-foreground)", stellen: 2, mitNull: true, fenster: true },
+      { schluessel: "aenderung", label: "Änderung je Stunde", einheit: "kg", farbe: FARBE_AENDERUNG, stellen: 2, balken: true, mitNull: true },
+      { schluessel: "summe", label: "Summe im Zeitraum", einheit: "kg", farbe: FARBE_SUMME, stellen: 2, mitNull: true, fenster: true },
     ],
   },
 ];
