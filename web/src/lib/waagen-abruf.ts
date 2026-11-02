@@ -3,6 +3,7 @@ import { kontoSchemas } from "@/lib/velutina";
 import { MESSWERTE_TAGE, tagInBerlin, waagenEinstellungLaden } from "@/lib/waagen";
 import {
   WolfSitzungAbgelaufen,
+  spur,
   wolfAnmelden,
   wolfDatenHolen,
   wolfMessAdresse,
@@ -114,13 +115,16 @@ async function waageAbrufen(sitzung: WolfSitzung, waage: { id: string; kennung: 
   const hatMesswerte = await prisma.waagenMesswert.findFirst({ where: { waageId: waage.id }, select: { waageId: true } });
   const vonStunden = new Date(jetzt.getTime() - (hatMesswerte ? NACHLADEN_TAGE : MESSWERTE_TAGE) * TAG_MS);
   const stunden = wolfReihenLesen(await wolfDatenHolen(sitzung, wolfMessAdresse(waage.kennung, "hour", vonStunden, jetzt)));
+  spur(`Messwerte speichern (${stunden.length})`);
   await messwerteSpeichern(waage.id, stunden, vonStunden, jetzt);
 
+  spur("Tageswerte vorbereiten");
   const abTag = await tageAbTag(waage.id, jetzt);
   // Mitternacht in Berlin; eine Stunde Unterschied im Sommer füllt Wolf vorn auf.
   const vonTagen = new Date(tagDatum(abTag).getTime() - 2 * STUNDE_MS);
   const antwort = await wolfDatenHolen(sitzung, wolfMessAdresse(waage.kennung, "day", vonTagen, jetzt));
   const tage = wolfReihenLesen(antwort);
+  spur(`Tageswerte speichern (${tage.length})`);
   await tageswerteSpeichern(waage.id, tage, tagInBerlin(new Date((antwort as { pointStart: number }).pointStart)), abTag);
 }
 
@@ -128,7 +132,9 @@ export type AbrufErgebnis = { ok: boolean; meldung: string };
 
 // Für das angemeldete oder per mitSchema gewählte Konto.
 export async function waagenAbrufen(): Promise<AbrufErgebnis> {
+  spur("Start");
   const einstellung = await waagenEinstellungLaden();
+  spur("Einstellung geladen");
   if (!einstellung?.aktiv) return { ok: false, meldung: "Der Bereich Waagen ist ausgeschaltet." };
   const benutzer = einstellung.benutzer;
   const passwort = einstellung.passwort;
@@ -140,7 +146,9 @@ export async function waagenAbrufen(): Promise<AbrufErgebnis> {
 
   const jetzt = new Date();
   await prisma.waagenEinstellung.update({ where: { id: "standard" }, data: { letzterVersuch: jetzt } });
+  spur("Versuch vermerkt");
   const waagen = await prisma.waage.findMany({ select: { id: true, kennung: true } });
+  spur(`${waagen.length} Waagen`);
 
   const fehler: string[] = [];
   for (const waage of waagen) {
@@ -151,6 +159,7 @@ export async function waagenAbrufen(): Promise<AbrufErgebnis> {
     }
   }
 
+  spur(`Waagen fertig, ${fehler.length} Fehler`);
   const meldung = fehler.join(" · ").slice(0, 500) || null;
   await prisma.waagenEinstellung.update({
     where: { id: "standard" },
