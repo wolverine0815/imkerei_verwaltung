@@ -91,6 +91,13 @@ export function navItems(faellig: number, velutina: number, aus: readonly string
       istAktiv: (pfad) => pfad.startsWith("/koeniginnen") && !pfad.startsWith("/koeniginnen/zuchtkarten"),
     },
     {
+      href: "/waagen",
+      bereich: "waagen",
+      label: "Waagen",
+      icon: IconWaage,
+      istAktiv: (pfad) => pfad.startsWith("/waagen"),
+    },
+    {
       href: "/behandlungen",
       bereich: "behandlungen",
       label: "Behandlungen",
@@ -124,13 +131,6 @@ export function navItems(faellig: number, velutina: number, aus: readonly string
       badge: velutina,
       badgeTitel: (anzahl) =>
         `${anzahl} ${anzahl === 1 ? "neue Meldung" : "neue Meldungen"} der Asiatischen Hornisse nahe deinen Ständen`,
-    },
-    {
-      href: "/waagen",
-      bereich: "waagen",
-      label: "Waagen",
-      icon: IconWaage,
-      istAktiv: (pfad) => pfad.startsWith("/waagen"),
     },
     {
       href: "/einstellungen",
