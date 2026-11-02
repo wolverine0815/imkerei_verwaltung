@@ -251,7 +251,7 @@ export default async function VolkDetailPage({
 }) {
   const { id } = await params;
   const aus = await abgeschalteteBereiche();
-  const waage = aus.includes("waagen") ? await prisma.waage.findUnique({ where: { volkId: id } }) : null;
+  const waage = aus.includes("waagen") ? null : await prisma.waage.findUnique({ where: { volkId: id } });
 
   const volk = await prisma.volk.findUnique({
     where: { id },
