@@ -454,13 +454,15 @@ async function anlegen(jetzt: Date) {
     varroaAnzahl: 6,
     varroaGemuellTage: 7,
     fuetterungArt: "INVERTZUCKERSIRUP",
-    fuetterungMengeKg: 10,
+    fuetterungMenge: 10,
+    fuetterungEinheit: "KG",
     fuettererAktion: "AUFGESETZT",
     notizen: "Kontrolle nach der Ameisensäure: kaum noch Milbenfall.",
   });
   await eintrag(v1, [9, 6, 17, 30], {
     fuetterungArt: "INVERTZUCKERSIRUP",
-    fuetterungMengeKg: 6,
+    fuetterungMenge: 6,
+    fuetterungEinheit: "KG",
     fuettererAktion: "ABGENOMMEN",
     futtermengeEinschaetzung: 1.5,
     gewichtKg: 38,
@@ -574,12 +576,14 @@ async function anlegen(jetzt: Date) {
   );
   await eintrag(v2, [8, 23, 18, 15], {
     fuetterungArt: "INVERTZUCKERSIRUP",
-    fuetterungMengeKg: 12,
+    fuetterungMenge: 12,
+    fuetterungEinheit: "KG",
     fuettererAktion: "AUFGESETZT",
   });
   await eintrag(v2, [9, 6, 17, 45], {
     fuetterungArt: "INVERTZUCKERSIRUP",
-    fuetterungMengeKg: 5,
+    fuetterungMenge: 5,
+    fuetterungEinheit: "KG",
     fuettererAktion: "ABGENOMMEN",
     gewichtKg: 35,
     wiegemethode: "VOLLSTAENDIG",
@@ -607,7 +611,8 @@ async function anlegen(jetzt: Date) {
     futterwaben: 1,
     mittelwaende: 2,
     fuetterungArt: "FUTTERTEIG",
-    fuetterungMengeKg: 1,
+    fuetterungMenge: 1,
+    fuetterungEinheit: "KG",
     notizen: "Ableger aus Volk 2 gebildet: 3 Brutwaben mit Weiselzellen, 1 Futterwabe, 2 Mittelwände.",
   });
   await eintrag(v3, [5, 23, 10, 0], {
@@ -653,13 +658,15 @@ async function anlegen(jetzt: Date) {
     varroaAnzahl: 3,
     varroaBienenprobeGramm: 50,
     fuetterungArt: "INVERTZUCKERSIRUP",
-    fuetterungMengeKg: 8,
+    fuetterungMenge: 8,
+    fuetterungEinheit: "KG",
     fuettererAktion: "AUFGESETZT",
     notizen: "Behandlung hat gewirkt.",
   });
   await eintrag(v3, [9, 20, 16, 0], {
     fuetterungArt: "INVERTZUCKERSIRUP",
-    fuetterungMengeKg: 4,
+    fuetterungMenge: 4,
+    fuetterungEinheit: "KG",
     volksstaerkeEinschaetzung: 3.5,
     futtermengeEinschaetzung: 4,
     gesamteindruck: 3,

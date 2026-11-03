@@ -598,11 +598,17 @@ enum VarroaZaehlweise {
 enum FuetterungsArt {
   INVERTZUCKERSIRUP
   WEIZENSIRUP
+  ZUCKERWASSER_07_1
   ZUCKERWASSER_1_1
   ZUCKERWASSER_3_2
   FUTTERTEIG
   EIWEISSFUTTERTEIG
   SONSTIGE
+}
+
+enum FuetterungsEinheit {
+  KG
+  LITER
 }
 
 /// Wie das Gewicht ermittelt wurde: nur eine Seite angehoben (Schätzung)
@@ -693,7 +699,9 @@ model StockkartenEintrag {
 
   // --- Fütterung / Gewicht -------------------------------------------------
   fuetterungArt     FuetterungsArt?
-  fuetterungMengeKg Float?
+  /// In fuetterungEinheit. Bei Zuckerwasser in KG die Zuckermenge (Trockenmasse).
+  fuetterungMenge   Float?
+  fuetterungEinheit FuetterungsEinheit?
   gewichtKg         Float? // manuell erfasstes Gewicht (unabhängig von einer Stockwaage)
   wiegemethode      Wiegemethode?
 

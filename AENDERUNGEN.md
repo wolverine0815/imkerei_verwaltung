@@ -16,6 +16,7 @@ Neue Abschnitte kommen oben hin.
 
 ## 1.1.0
 
+- Fütterung: Die Menge lässt sich in Litern oder Kilogramm eintragen, neu ist Zuckerwasser 0,7:1. Die Stockkarte zeigt dazu die Zuckermenge als Näherung, damit Fütterungen vergleichbar sind. Bei Zuckerwasser in Kilogramm gilt die Zuckermenge selbst. Der BeeInTouch-Import übernimmt Liter-Angaben jetzt in die Felder statt in die Notiz.
 - Neu unter Einstellungen: **Waagen**. Einmal eingeschaltet, zeigt die Stockkarte die Werte einer Wolf-Bienenstockwaage der letzten 14 Tage, dazu gibt es den Menüpunkt Waagen und je Stand die Grünlandtemperatursumme. Die Werte holt der Server selbst, stündlich, von November bis Februar einmal am Tag. Tage ohne Messung und Stände ohne Waage füllt ein Wetterdienst (Open-Meteo) auf, dafür braucht der Stand Koordinaten.
 - Neu unter Einstellungen: **Import aus BeeInTouch**. Du lädst die Stockkarten als PDF hoch (eine je Volk), siehst vorab, was angelegt wird, und die App übernimmt Durchschauen, Fütterungen, Behandlungen, Honigernten, Varroakontrollen und auf Wunsch die Königin. Die Einträge lassen sich einem Helfer zuschreiben. Derselbe Import lässt sich gefahrlos wiederholen, nichts wird doppelt angelegt.
 

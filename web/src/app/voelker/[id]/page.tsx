@@ -16,6 +16,7 @@ import { DokumenteMiniListe } from "@/components/dokumente-mini-liste";
 import { Card, knopfKlassen } from "@/components/ui";
 import { WaagenKarte } from "@/components/waagen-karte";
 import { SaisonAufklappbar } from "@/components/saison-aufklappbar";
+import { zuckerIstNaeherung, zuckerNaeherungKg, type FuetterungsEinheit } from "@/lib/fuetterung-zucker";
 import { volkGtsText } from "@/lib/waagen";
 import { anzeigeFarbe, koeniginZeile, verbleibKurz, type EreignisArt } from "@/lib/koeniginnen";
 import { KoeniginUmweiselnDialog } from "@/components/koenigin-umweiseln-dialog";
@@ -243,6 +244,20 @@ const VERLAUF_STREIFEN: Record<VerlaufArt, string> = {
 };
 function verlaufKarte(art: VerlaufArt): string {
   return `!shadow-none !border-l-[6px] ${VERLAUF_STREIFEN[art]}`;
+}
+
+// "(4,5 l, ≈ 2,8 kg Zucker)"; bei Zuckerwasser in kg ist die Menge der Zucker selbst.
+function fuetterungMengeText(eintrag: {
+  fuetterungArt: string | null;
+  fuetterungMenge: number | null;
+  fuetterungEinheit: FuetterungsEinheit | null;
+}) {
+  if (eintrag.fuetterungMenge === null) return "";
+  const liter = eintrag.fuetterungEinheit === "LITER";
+  const menge = `${kgAnzeige(eintrag.fuetterungMenge)} ${liter ? "l" : "kg"}`;
+  if (!zuckerIstNaeherung(eintrag.fuetterungArt, eintrag.fuetterungEinheit)) return ` (${menge} Zucker)`;
+  const zucker = zuckerNaeherungKg(eintrag.fuetterungArt, eintrag.fuetterungMenge, eintrag.fuetterungEinheit);
+  return zucker === null ? ` (${menge})` : ` (${menge}, ≈ ${kgAnzeige(zucker)} kg Zucker)`;
 }
 
 export default async function VolkDetailPage({
@@ -990,8 +1005,7 @@ export default async function VolkDetailPage({
                 schluessel: "fuetterung",
                 bezeichnung: "Fütterung",
                 wert:
-                  (FUETTERUNGS_ART_LABEL[eintrag.fuetterungArt] ?? eintrag.fuetterungArt) +
-                  (eintrag.fuetterungMengeKg !== null ? ` (${kgAnzeige(eintrag.fuetterungMengeKg)} kg)` : ""),
+                  (FUETTERUNGS_ART_LABEL[eintrag.fuetterungArt] ?? eintrag.fuetterungArt) + fuetterungMengeText(eintrag),
               },
               eintrag.fuettererAktion && {
                 schluessel: "fuetterer",

@@ -34,6 +34,7 @@ export const STANDARD_OPTIONEN: Optionen = {
 export type FuetterungsArt =
   | "INVERTZUCKERSIRUP"
   | "WEIZENSIRUP"
+  | "ZUCKERWASSER_07_1"
   | "ZUCKERWASSER_1_1"
   | "ZUCKERWASSER_3_2"
   | "FUTTERTEIG"
@@ -55,7 +56,8 @@ export type EintragFelder = {
   wabensitz?: number;
   legeleistung?: number;
   fuetterungArt?: FuetterungsArt;
-  fuetterungMengeKg?: number;
+  fuetterungMenge?: number;
+  fuetterungEinheit?: "KG" | "LITER";
   honigGeerntet?: boolean;
   honigart?: string;
   honigertragKg?: number;
@@ -228,6 +230,7 @@ export function fuetterungsArtAus(text: string): FuetterungsArt {
   const t = text.toLowerCase().replace(/\s+/g, "");
   if (t.includes("(3:2)")) return "ZUCKERWASSER_3_2";
   if (t.includes("(1:1)")) return "ZUCKERWASSER_1_1";
+  if (t.includes("(0,7:1)") || t.includes("(0.7:1)")) return "ZUCKERWASSER_07_1";
   if (t.includes("invert")) return "INVERTZUCKERSIRUP";
   if (t.includes("weizen")) return "WEIZENSIRUP";
   if (t.includes("eiwei") && t.includes("teig")) return "EIWEISSFUTTERTEIG";
@@ -242,9 +245,10 @@ function fuetterungEntwurf(f: BitFuetterung): { felder: EintragFelder; kurz: str
   const felder: EintragFelder = { fuetterungArt: art };
   let verlustfrei = art !== "SONSTIGE";
   if (f.menge !== null && f.menge > 0) {
-    if (einheit === "kg") felder.fuetterungMengeKg = f.menge;
-    else if (einheit === "g") felder.fuetterungMengeKg = f.menge / 1000;
-    else verlustfrei = false; // Liter lassen sich ohne Dichte nicht in kg umrechnen
+    if (einheit === "kg") Object.assign(felder, { fuetterungMenge: f.menge, fuetterungEinheit: "KG" });
+    else if (einheit === "g") Object.assign(felder, { fuetterungMenge: f.menge / 1000, fuetterungEinheit: "KG" });
+    else if (einheit === "l" || einheit.startsWith("liter")) Object.assign(felder, { fuetterungMenge: f.menge, fuetterungEinheit: "LITER" });
+    else verlustfrei = false;
   }
   if (!verlustfrei) {
     felder.notizen = `Fütterung: ${[f.art, mengeText].filter(Boolean).join(", ")}.`;

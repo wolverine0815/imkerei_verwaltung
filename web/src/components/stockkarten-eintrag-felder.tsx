@@ -12,6 +12,7 @@ import { IconHaus, IconWabenrahmen, IconVarroa, IconMedaille, IconHonigglas, Ico
 const FUETTERUNGS_ART_OPTIONEN = [
   { wert: "INVERTZUCKERSIRUP", label: "Invertzuckersirup" },
   { wert: "WEIZENSIRUP", label: "Weizensirup" },
+  { wert: "ZUCKERWASSER_07_1", label: "Zuckerwasser 0,7:1" },
   { wert: "ZUCKERWASSER_1_1", label: "Zuckerwasser 1:1" },
   { wert: "ZUCKERWASSER_3_2", label: "Zuckerwasser 3:2" },
   { wert: "FUTTERTEIG", label: "Futterteig" },
@@ -265,7 +266,8 @@ export type StockkartenEintragDefaults = {
   /// Honigräume, die dieser Eintrag geerntet hat (beim Bearbeiten).
   geernteteAufsatzIds?: string[];
   fuetterungArt?: string | null;
-  fuetterungMengeKg?: number | null;
+  fuetterungMenge?: number | null;
+  fuetterungEinheit?: string | null;
   gewichtKg?: number | null;
   wiegemethode?: string | null;
   notizen?: string | null;
@@ -535,8 +537,8 @@ export function StockkartenEintragFelder({
       <Aufklappbar
         titel="Fütterung"
         symbol={<IconTropfen className="h-4 w-4" />}
-        hinweis="Was das Volk bekommen hat: Futterart und Menge in Kilogramm."
-        startOffen={fuettererAuf || hatWert(werte.fuetterungArt, werte.fuetterungMengeKg)}
+        hinweis="Was das Volk bekommen hat: Futterart und Menge in Litern oder Kilogramm. Bei Zuckerwasser in Kilogramm gilt die Zuckermenge (Trockenmasse)."
+        startOffen={fuettererAuf || hatWert(werte.fuetterungArt, werte.fuetterungMenge)}
       >
         <div>
           <input type="hidden" name="fuettererModus" value={fuettererModus} />
@@ -561,12 +563,16 @@ export function StockkartenEintragFelder({
               ))}
             </Select>
           </div>
-          <ZahlFeld
-            name="fuetterungMengeKg"
-            label="Menge (kg)"
-            defaultValue={werte.fuetterungMengeKg}
-            kommazahl
-          />
+          <div className="grid grid-cols-[minmax(0,1fr)_7rem] items-end gap-2">
+            <ZahlFeld name="fuetterungMenge" label="Menge" defaultValue={werte.fuetterungMenge} kommazahl />
+            <div>
+              <Label htmlFor="fuetterungEinheit">Einheit</Label>
+              <Select id="fuetterungEinheit" name="fuetterungEinheit" defaultValue={werte.fuetterungEinheit ?? "LITER"}>
+                <option value="LITER">Liter</option>
+                <option value="KG">kg</option>
+              </Select>
+            </div>
+          </div>
         </div>
       </Aufklappbar>
 
