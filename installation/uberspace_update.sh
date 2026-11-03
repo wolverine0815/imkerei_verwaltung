@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Aktualisiert die Imkereiverwaltung auf dem Uberspace (ohne Docker).
 # Der neue Stand kommt aus dem Repository auf dem Uberspace (standardmäßig
-# ~/imkerei_verwaltung, anderer Ort: IMKEREI_REPO setzen). Vorher
+# ~/git/imkerei_verwaltung, anderer Ort: IMKEREI_REPO setzen). Vorher
 # also die neuen Änderungen dorthin pushen (und bei Releases die Tags: --tags).
 #
 #   imkerei-update                  Starter (uberspace_starter.sh), aktueller Zweig
@@ -32,7 +32,7 @@ trap 'rm -f "$0"' EXIT
 export PATH="$HOME/bin:$PATH"
 BASIS="$HOME/imkerei_verwaltung_app"
 QUELLE="$BASIS/quelle"
-REPO="${IMKEREI_REPO:-$HOME/imkerei_verwaltung}"
+REPO="${IMKEREI_REPO:-$HOME/git/imkerei_verwaltung}"
 ZWEIG="${IMKEREI_ZWEIG:-pt/fuetterung_einheit}"
 
 hinweis() { printf '\n\033[1;32m==> %s\033[0m\n' "$*"; }

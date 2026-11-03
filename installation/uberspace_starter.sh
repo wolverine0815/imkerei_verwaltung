@@ -9,7 +9,7 @@
 #
 # Einmalig von Hand anlegen, danach hält das Update die Datei aktuell:
 #
-#   git --git-dir="$HOME/imkerei_verwaltung" show ZWEIG:installation/uberspace_starter.sh > ~/bin/imkerei-update
+#   git --git-dir="$HOME/git/imkerei_verwaltung" show ZWEIG:installation/uberspace_starter.sh > ~/bin/imkerei-update
 #   chmod 755 ~/bin/imkerei-update
 
 set -euo pipefail
@@ -17,7 +17,7 @@ set -euo pipefail
 export PATH="$HOME/bin:$PATH"
 BASIS="$HOME/imkerei_verwaltung_app"
 QUELLE="$BASIS/quelle"
-REPO="${IMKEREI_REPO:-$HOME/imkerei_verwaltung}"
+REPO="${IMKEREI_REPO:-$HOME/git/imkerei_verwaltung}"
 
 abbruch() { printf '\n\033[1;31mFehler: %s\033[0m\n' "$*" >&2; exit 1; }
 

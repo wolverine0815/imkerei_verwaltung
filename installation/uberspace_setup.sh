@@ -5,7 +5,7 @@
 #
 # Voraussetzungen:
 #   - Ein Bare-Repository auf dem Uberspace, in das du das komplette Projekt
-#     gepusht hast, standardmäßig ~/imkerei_verwaltung
+#     gepusht hast, standardmäßig ~/git/imkerei_verwaltung
 #     (anderer Ort: IMKEREI_REPO=/pfad/zum/repo setzen).
 #   - PostgreSQL läuft auf dem Uberspace (https://lab.uberspace.de/guide_postgresql/),
 #     mit leerer Datenbank und einem Benutzer, dem sie gehört.
@@ -38,7 +38,7 @@ trap 'rm -f "$0"' EXIT
 
 BASIS="$HOME/imkerei_verwaltung_app"
 QUELLE="$BASIS/quelle"
-REPO="${IMKEREI_REPO:-$HOME/imkerei_verwaltung}"
+REPO="${IMKEREI_REPO:-$HOME/git/imkerei_verwaltung}"
 ZWEIG="${IMKEREI_ZWEIG:-pt/fuetterung_einheit}"
 
 hinweis() { printf '\n\033[1;32m==> %s\033[0m\n' "$*"; }
