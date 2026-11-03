@@ -15,6 +15,7 @@ const FUETTERUNGS_ART_OPTIONEN = [
   { wert: "ZUCKERWASSER_07_1", label: "Zuckerwasser 0,7:1" },
   { wert: "ZUCKERWASSER_1_1", label: "Zuckerwasser 1:1" },
   { wert: "ZUCKERWASSER_3_2", label: "Zuckerwasser 3:2" },
+  { wert: "ZUCKERWASSER_2_1", label: "Zuckerwasser 2:1" },
   { wert: "FUTTERTEIG", label: "Futterteig" },
   { wert: "EIWEISSFUTTERTEIG", label: "Eiweißfutterteig" },
   { wert: "SONSTIGE", label: "Sonstige" },

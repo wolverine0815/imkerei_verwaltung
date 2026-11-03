@@ -21,6 +21,7 @@ const SATZ = /Fütterung: (.+?), (\d+(?:,\d+)?) (Liter|liter|l|kg|g)\.(?=\s|$)/;
 function artAus(text) {
   const t = text.toLowerCase().replace(/\s+/g, "");
   if (t.includes("(3:2)")) return "ZUCKERWASSER_3_2";
+  if (t.includes("(2:1)")) return "ZUCKERWASSER_2_1";
   if (t.includes("(1:1)")) return "ZUCKERWASSER_1_1";
   if (t.includes("(0,7:1)") || t.includes("(0.7:1)")) return "ZUCKERWASSER_07_1";
   if (t.includes("invert")) return "INVERTZUCKERSIRUP";

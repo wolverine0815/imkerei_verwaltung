@@ -37,6 +37,7 @@ export type FuetterungsArt =
   | "ZUCKERWASSER_07_1"
   | "ZUCKERWASSER_1_1"
   | "ZUCKERWASSER_3_2"
+  | "ZUCKERWASSER_2_1"
   | "FUTTERTEIG"
   | "EIWEISSFUTTERTEIG"
   | "SONSTIGE";
@@ -229,6 +230,7 @@ function durchschauEntwurf(d: BitDurchschau): { felder: EintragFelder; kurz: str
 export function fuetterungsArtAus(text: string): FuetterungsArt {
   const t = text.toLowerCase().replace(/\s+/g, "");
   if (t.includes("(3:2)")) return "ZUCKERWASSER_3_2";
+  if (t.includes("(2:1)")) return "ZUCKERWASSER_2_1";
   if (t.includes("(1:1)")) return "ZUCKERWASSER_1_1";
   if (t.includes("(0,7:1)") || t.includes("(0.7:1)")) return "ZUCKERWASSER_07_1";
   if (t.includes("invert")) return "INVERTZUCKERSIRUP";
