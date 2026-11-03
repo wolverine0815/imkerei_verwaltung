@@ -39,7 +39,7 @@ trap 'rm -f "$0"' EXIT
 BASIS="$HOME/imkerei_verwaltung_app"
 QUELLE="$BASIS/quelle"
 REPO="${IMKEREI_REPO:-$HOME/imkerei_verwaltung}"
-ZWEIG="${IMKEREI_ZWEIG:-pt/beeintouch_import}"
+ZWEIG="${IMKEREI_ZWEIG:-pt/fuetterung_einheit}"
 
 hinweis() { printf '\n\033[1;32m==> %s\033[0m\n' "$*"; }
 warnung() { printf '\n\033[1;33mAchtung: %s\033[0m\n' "$*"; }
