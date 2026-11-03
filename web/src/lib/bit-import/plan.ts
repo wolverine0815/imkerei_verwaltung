@@ -250,8 +250,12 @@ function fuetterungEntwurf(f: BitFuetterung): { felder: EintragFelder; kurz: str
     else if (einheit === "l" || einheit.startsWith("liter")) Object.assign(felder, { fuetterungMenge: f.menge, fuetterungEinheit: "LITER" });
     else verlustfrei = false;
   }
+  // Der Name des Futters bleibt immer als Notiz stehen (etwa "Bio Zucker" für die
+  // Bio-Kontrolle), die Menge nur, wenn sie nicht in die Felder passte.
   if (!verlustfrei) {
     felder.notizen = `Fütterung: ${[f.art, mengeText].filter(Boolean).join(", ")}.`;
+  } else if (f.art.trim()) {
+    felder.notizen = `Futter: ${f.art.trim()}.`;
   }
   return { felder, kurz: `Fütterung: ${[f.art, mengeText].filter(Boolean).join(", ")}` };
 }
