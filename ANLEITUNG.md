@@ -253,7 +253,7 @@ Im Volk auf **[Durchsicht erfassen]** tippen. Datum und Uhrzeit sind auf „jetz
 | Varroa | Zählweise (Puderzucker, Auswaschung, Gemülldiagnose), gezählte Milben, Probengröße bzw. Tage der Windel. Die App rechnet auf Milben je Tag bzw. Prozent um und vergleicht mit der Schadschwelle der Jahreszeit. Unter *Biotechnik* der Haken *Drohnenbrut geschnitten* und ein freies Feld. Verfahren mit Fahrplan wie TBE oder Bannwabe legst du unter [Behandlungen](#behandlungen) an. Tierarzneimittel gehören nicht hierher, sondern unter [Behandlungen](#behandlungen). |
 | Bewertung des Volkes | Regler für Volksstärke, Futtermenge, Sanftmut, Wabensitz, Schwarmtrieb, Legeleistung und Gesamteindruck, siehe unten. Dazu die Haken *Bienen haben mich angeflogen* und *Abgeschwärmt*. |
 | Honigraum & Ernte | Honigraum aufsetzen oder abnehmen, Ernte (die App schätzt die Menge aus den abgenommenen Zargen und Waben, du kannst sie anpassen) und Honigart. |
-| Fütterung | Futterart und Menge in kg, dazu der Haken *Fütterer aufgesetzt*. Er ist so vorbelegt, wie es gerade am Volk ist; nimmst du den Haken weg, gilt der Fütterer als abgenommen. |
+| Fütterung | Futterart und Menge in **Liter oder kg**, dazu der Haken *Fütterer aufgesetzt*. Bei Zuckerwasser in kg ist die Zuckermenge gemeint. Im Verlauf steht dazu die Zuckermenge als Näherung, z. B. „4,5 l, ≈ 2,8 kg Zucker“, so lassen sich Fütterungen vergleichen. Er ist so vorbelegt, wie es gerade am Volk ist; nimmst du den Haken weg, gilt der Fütterer als abgenommen. |
 | Gewicht | Gewogenes Gewicht, einseitig oder vollständig. Wiegst du in Teilen, tippst du einfach „13+17“, die App rechnet „= 30 kg“. Der Knopf **[+]** neben dem Feld hilft am iPhone, dessen Zahlentastatur kein Plus hat. |
 
 Unten folgen **Notizen**, **Maßnahmen** (eine pro Zeile, sie landen in der [Maßnahmenliste](#massnahmen)) und bis zu fünf **Fotos**, direkt mit der Handykamera oder aus der Mediathek.
@@ -591,7 +591,7 @@ So wird übersetzt:
 
 - **Bewertungen** von 1 bis 5 werden umgedreht, denn in BeeInTouch ist 5 am besten.
 - **Entnommene Waben** (negative Zahlen in BeeInTouch) stehen in den Notizen.
-- **Fütterungen** in kg kommen mit der Menge in die Felder. Mengen in Litern stehen in der Notiz, denn ohne Dichte lässt sich nicht in kg umrechnen.
+- **Fütterungen** kommen mit Menge und Einheit (Liter oder kg) in die Felder. Der Name des Futters, etwa „Bio Zucker (1:1)“, bleibt als Notiz stehen, zum Beispiel für die Bio-Kontrolle.
 - **Totale Brutentnahme** wird zum Verfahren *TBE* unter Behandlungen.
 - **Honigernten ohne Menge** werden übersprungen.
 

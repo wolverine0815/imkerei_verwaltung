@@ -114,7 +114,7 @@ const ZAHL_FELDER = [
   "gesamteindruck",
   "legeleistung",
   "honigertragKg",
-  "fuetterungMengeKg",
+  "fuetterungMenge",
   "gewichtKg",
 ] as const;
 

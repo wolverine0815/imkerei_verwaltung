@@ -211,13 +211,26 @@ const VARROA_ZAEHLWEISEN = ["PUDERZUCKER", "AUSWASCHUNG", "GEMUELLDIAGNOSE", "SO
 const FUETTERUNGS_ARTEN = [
   "INVERTZUCKERSIRUP",
   "WEIZENSIRUP",
+  "ZUCKERWASSER_07_1",
   "ZUCKERWASSER_1_1",
   "ZUCKERWASSER_3_2",
+  "ZUCKERWASSER_2_1",
   "FUTTERTEIG",
   "EIWEISSFUTTERTEIG",
   "SONSTIGE",
 ] as const;
+const FUETTERUNGS_EINHEITEN = ["KG", "LITER"] as const;
 const WIEGEMETHODEN = ["EINSEITIG", "VOLLSTAENDIG"] as const;
+
+// Ohne Menge keine Einheit; ohne Einheit galt früher immer Kilogramm.
+function fuetterungMengeAusFormular(formData: FormData) {
+  const fuetterungMenge = zahlOderNull(formData.get("fuetterungMenge"));
+  return {
+    fuetterungMenge,
+    fuetterungEinheit:
+      fuetterungMenge === null ? null : (enumWertOderNull(FUETTERUNGS_EINHEITEN, formData.get("fuetterungEinheit")) ?? "KG"),
+  };
+}
 const NACHWEIS_UMFAENGE = ["ALLE", "STAND", "VOLK"] as const;
 
 async function neueBilderSpeichern(stockkartenEintragId: string, formData: FormData) {
@@ -2322,7 +2335,7 @@ function stockkartenEintragFelderAusFormular(formData: FormData) {
     abgeschwaermt: checkboxJaNein(formData.get("abgeschwaermt")),
     honigart: textOderUndefined(formData.get("honigart")) ?? null,
     fuetterungArt: enumWertOderNull(FUETTERUNGS_ARTEN, formData.get("fuetterungArt")),
-    fuetterungMengeKg: zahlOderNull(formData.get("fuetterungMengeKg")),
+    ...fuetterungMengeAusFormular(formData),
     gewichtKg: gewichtOderNull(formData.get("gewichtKg")),
     wiegemethode: enumWertOderNull(WIEGEMETHODEN, formData.get("wiegemethode")),
     notizen: textOderUndefined(formData.get("notizen")) ?? null,
