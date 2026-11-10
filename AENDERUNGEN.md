@@ -14,6 +14,10 @@ So sieht ein Abschnitt aus:
 
 Neue Abschnitte kommen oben hin.
 
+## Unveröffentlicht
+
+- Installation ohne Docker auf einem Uberspace: Skripte für Einrichtung und Update, gebaut wird auf dem eigenen Rechner, Beschreibung in `installation/LIESMICH.md`. Fotos verkleinert jetzt ein eigener Prozess, denn mit `sharp` im App-Prozess stürzte die App dort beim nächsten Abruf aus dem Internet ab.
+
 ## 1.2.1
 
 - Die Anleitung beschreibt jetzt den Wabenbestand: Waben beim Anlegen eines Volkes, Nachtragen bei älteren Völkern, Waben geben und entnehmen in der Durchsicht. Mit neuen Bildern.

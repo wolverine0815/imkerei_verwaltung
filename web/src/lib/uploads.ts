@@ -1,7 +1,7 @@
+import { spawn } from "child_process";
 import { access, mkdir, unlink, writeFile } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
-import sharp from "sharp";
 import { aktuellesKonto } from "@/lib/konto";
 import { DEMO_UPLOAD_MELDUNG, istDemo } from "@/lib/demo";
 
@@ -83,6 +83,26 @@ export async function bildSpeichern(datei: File): Promise<{
 // Ansehen des Brutbilds ohnehin in voller Auflösung anklickt.
 const FOTO_MAX_PX = 1600;
 
+// In einem eigenen Prozess, siehe scripts/bild-verkleinern.mjs: sharp darf nicht
+// in den App-Server geladen werden.
+function fotoVerkleinern(eingabe: Buffer): Promise<Buffer> {
+  return new Promise((erfuellen, ablehnen) => {
+    const skript = path.join(process.cwd(), "scripts", "bild-verkleinern.mjs");
+    const kind = spawn(process.execPath, [skript, String(FOTO_MAX_PX)], { stdio: ["pipe", "pipe", "inherit"] });
+    const teile: Buffer[] = [];
+    kind.stdout.on("data", (teil: Buffer) => teile.push(teil));
+    kind.on("error", ablehnen);
+    // Stirbt der Prozess vor dem Ende der Eingabe, meldet "close" den Fehler.
+    kind.stdin.on("error", () => {});
+    kind.on("close", (code, signal) => {
+      const ergebnis = Buffer.concat(teile);
+      if (code === 0 && ergebnis.length > 0) erfuellen(ergebnis);
+      else ablehnen(new Error(`Das Foto konnte nicht verkleinert werden (${signal ?? `Code ${code}`}).`));
+    });
+    kind.stdin.end(eingabe);
+  });
+}
+
 export async function verkleinertesFotoSpeichern(datei: File): Promise<{
   dateiname: string;
   originalDateiname: string;
@@ -93,16 +113,7 @@ export async function verkleinertesFotoSpeichern(datei: File): Promise<{
   await mkdir(verzeichnis, { recursive: true });
 
   const eingabe = Buffer.from(await datei.arrayBuffer());
-  const verkleinert = await sharp(eingabe)
-    .rotate() // EXIF-Ausrichtung anwenden, bevor sie beim Verkleinern verloren geht
-    .resize({
-      width: FOTO_MAX_PX,
-      height: FOTO_MAX_PX,
-      fit: "inside",
-      withoutEnlargement: true,
-    })
-    .jpeg({ quality: 80 })
-    .toBuffer();
+  const verkleinert = await fotoVerkleinern(eingabe);
 
   const dateiname = `${randomUUID()}.jpg`;
   await writeFile(path.join(verzeichnis, dateiname), verkleinert);
