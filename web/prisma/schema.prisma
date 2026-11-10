@@ -62,6 +62,14 @@ model Bienenstand {
   begatteteKoeniginnen Koenigin[]   @relation("KoeniginBegattungsstand")
   zuchtserienBegattung Zuchtserie[] @relation("ZuchtserieBegattungsstand")
   dokumente            Dokument[]
+
+  /// Von wessen Wetterdaten die Grünlandtemperatursumme des Stands kommt.
+  /// Leer = die zuerst angelegte Waage an einem Volk dieses Stands.
+  wetterWaageId String?
+  wetterWaage   Waage?  @relation("StandWetterWaage", fields: [wetterWaageId], references: [id], onDelete: SetNull)
+
+  /// Tagesmittel vom Wetterdienst, ergänzt die GTS (siehe web/src/lib/wetter.ts).
+  wettertage StandWettertag[]
 }
 
 /// Sortierung der Völker-Kacheln auf der Bienenstand-Seite.
@@ -274,6 +282,7 @@ model Volk {
   erzeugnisBuchungen       ErzeugnisBuchung[]
   /// Gesetzt, solange der Status "verkauft" ist (Preis, Käufer, Datum).
   verkauf                  Verkauf?
+  waage                    Waage?
 
   @@index([bienenstandId])
   @@index([klimadeckelId])
@@ -750,8 +759,8 @@ model StockkartenEintrag {
   /// Beurteilungen, die aus diesem Eintrag zur Königin übernommen wurden.
   koeniginEreignisse KoeniginEreignis[]
 
-  @@index([volkId])
   @@unique([volkId, sendungId])
+  @@index([volkId])
 }
 
 /// Woraus sich eine Ernte zusammensetzt: so viele Zargen einer Honigraumgröße
@@ -828,8 +837,8 @@ model Massnahme {
   /// bei StockkartenEintrag: eine nachgesendete Maßnahme kommt nur einmal an.
   sendungId String?
 
-  @@index([volkId])
   @@unique([volkId, sendungId])
+  @@index([volkId])
   @@index([zuchtserieId])
   @@index([bioVerfahrenId])
   @@index([stockkartenEintragId])
@@ -1733,6 +1742,86 @@ model Bereichswahl {
   id           String   @id @default("standard")
   abgeschaltet String[]
   updatedAt    DateTime @updatedAt
+}
+
+/// Ein Wert je Stand und Tag vom Wetterdienst, bleibt dauerhaft.
+model StandWettertag {
+  bienenstandId String
+  bienenstand   Bienenstand @relation(fields: [bienenstandId], references: [id], onDelete: Cascade)
+  tag           DateTime    @db.Date
+  mittelC       Float
+
+  @@id([bienenstandId, tag])
+}
+
+/// Bienenstockwaagen (Einstellungen -> Waagen). Eine einzige Zeile. Anders als
+/// die Bereiche ist das Feature ohne Zeile aus. Das Passwort zum Herstellerkonto
+/// liegt verschlüsselt hier (siehe web/src/lib/geheim.ts).
+model WaagenEinstellung {
+  id                     String    @id @default("standard")
+  aktiv                  Boolean   @default(false)
+  benutzer               String?
+  passwortVerschluesselt String?
+  letzterVersuch         DateTime?
+  letzterErfolg          DateTime?
+  fehler                 String?
+  updatedAt              DateTime  @updatedAt
+}
+
+enum WaagenHersteller {
+  WOLF
+}
+
+/// Eine Bienenstockwaage. Hängt an höchstens einem Volk; wechselt sie das Volk
+/// oder wird sie gelöst, bleiben die Messwerte bei der Waage erhalten.
+model Waage {
+  id         String           @id @default(cuid())
+  hersteller WaagenHersteller @default(WOLF)
+  /// Kennung beim Hersteller, bei Wolf die ID aus der Adresse (z.B. "G2MJ0V").
+  kennung    String           @unique
+  name       String?
+  volkId     String?          @unique
+  /// Jahr, für das alle Tageswerte geholt wurden. Eine Waage, die erst im Laufe
+  /// des Jahres misst, hat frühe Tage nie; sie sollen nicht bei jedem Abruf neu kommen.
+  tageGeladenJahr Int?
+  volk       Volk?            @relation(fields: [volkId], references: [id], onDelete: SetNull)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  messwerte  WaagenMesswert[]
+  tageswerte WaagenTageswert[]
+  wetterFuer Bienenstand[]     @relation("StandWetterWaage")
+}
+
+/// Einzelmessungen, nur die letzten 14 Tage (siehe web/src/lib/waagen.ts).
+model WaagenMesswert {
+  waageId        String
+  waage          Waage    @relation(fields: [waageId], references: [id], onDelete: Cascade)
+  zeitpunkt      DateTime
+  gewichtKg      Float?
+  ertragKg       Float?
+  temperaturC    Float?
+  feuchteProzent Float?
+  regenMm        Float?
+  windKmh        Float?
+
+  @@id([waageId, zeitpunkt])
+}
+
+/// Ein Wert je Waage und Tag, bleibt dauerhaft. Grundlage der
+/// Grünlandtemperatursumme, die alle Tage ab dem 1. Januar braucht.
+model WaagenTageswert {
+  waageId           String
+  waage             Waage    @relation(fields: [waageId], references: [id], onDelete: Cascade)
+  tag               DateTime @db.Date
+  temperaturMittelC Float?
+  temperaturMinC    Float?
+  temperaturMaxC    Float?
+  gewichtKg         Float?
+  ertragKg          Float?
+  regenMm           Float?
+
+  @@id([waageId, tag])
 }
 
 /// Hauptzugang einer selbst installierten Instanz, angelegt vom

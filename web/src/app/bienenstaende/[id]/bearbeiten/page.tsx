@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { bereichAn } from "@/lib/bereiche";
+import { wetterWaageLaden } from "@/lib/waagen";
 import { bienenstandAktualisieren, bienenstandArchivieren, bienenstandReaktivieren } from "@/lib/actions";
-import { Card, Label, Input, Textarea, Button } from "@/components/ui";
+import { Card, Label, Input, Select, Textarea, Button } from "@/components/ui";
 import { FormularFehler, SicheresFormular, SpeichernKnopf } from "@/components/sicheres-formular";
 import { StandortKarte } from "@/components/standort-karte";
 import { EinzelfotoAuswahl } from "@/components/einzelfoto-auswahl";
@@ -24,6 +26,8 @@ export default async function BienenstandBearbeitenPage({
   if (!bienenstand) {
     notFound();
   }
+
+  const { waagen } = (await bereichAn("waagen")) ? await wetterWaageLaden(bienenstand.id) : { waagen: [] };
 
   const aktualisieren = bienenstandAktualisieren.bind(null, bienenstand.id);
   const archivieren = bienenstandArchivieren.bind(null, bienenstand.id);
@@ -49,6 +53,20 @@ export default async function BienenstandBearbeitenPage({
             initialBreitengrad={bienenstand.breitengrad}
             initialLaengengrad={bienenstand.laengengrad}
           />
+          {waagen.length > 1 && (
+            <div>
+              <Label htmlFor="wetterWaageId">Waage für die GTS</Label>
+              <Select id="wetterWaageId" name="wetterWaageId" defaultValue={bienenstand.wetterWaageId ?? ""}>
+                <option value="">Automatisch (zuerst angelegte Waage)</option>
+                {waagen.map((waage) => (
+                  <option key={waage.id} value={waage.id}>
+                    {waage.name || waage.kennung}
+                    {waage.volk ? ` (${waage.volk.name})` : ""}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
           <div>
             <Label htmlFor="notizen">Notizen</Label>
             <Textarea id="notizen" name="notizen" rows={3} defaultValue={bienenstand.notizen ?? ""} />

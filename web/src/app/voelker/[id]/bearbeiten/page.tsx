@@ -18,6 +18,7 @@ import { LoeschenBestaetigen } from "@/components/loeschen-bestaetigen";
 import { KoeniginStern } from "@/components/koenigin-stern";
 import { behandlungenAmVolk, sperrtextVolk } from "@/lib/bestandsbuch-sperre";
 import { SeitenNavigation } from "@/components/seiten-navigation";
+import { WAAGEN_HERSTELLER_LABEL } from "@/lib/waagen";
 
 export default async function VolkBearbeitenPage({
   params,
@@ -74,6 +75,10 @@ export default async function VolkBearbeitenPage({
         wabenMittelwaende: volk.wabenMittelwaende,
       }
     : {};
+  const waagenAn = await bereichAn("waagen");
+  const waagen = waagenAn
+    ? await prisma.waage.findMany({ orderBy: { createdAt: "asc" }, include: { volk: { select: { name: true } } } })
+    : [];
 
   const aktualisieren = volkAktualisieren.bind(null, volk.id);
   const archivieren = volkArchivieren.bind(null, volk.id);
@@ -144,6 +149,21 @@ export default async function VolkBearbeitenPage({
               Stockkarte dort.
             </p>
           </div>
+          {waagenAn && (
+            <div>
+              <Label htmlFor="waageId">Waage</Label>
+              <Select id="waageId" name="waageId" defaultValue={waagen.find((w) => w.volkId === volk.id)?.id ?? ""}>
+                <option value="">Keine Waage</option>
+                {waagen.map((waage) => (
+                  <option key={waage.id} value={waage.id}>
+                    {WAAGEN_HERSTELLER_LABEL[waage.hersteller]} {waage.name || waage.kennung}
+                    {waage.volk && waage.volkId !== volk.id ? ` (jetzt bei ${waage.volk.name})` : ""}
+                  </option>
+                ))}
+              </Select>
+              <p className="mt-1 text-xs text-muted">Neue Waagen legst du unter Einstellungen → Waagen an.</p>
+            </div>
+          )}
           <BrutraumAuswahl
             brutraeume={brutraeume}
             zargeId={volk.brutraumZargeId}

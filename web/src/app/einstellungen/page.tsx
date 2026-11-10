@@ -36,7 +36,7 @@ export default async function EinstellungenPage() {
     ]);
 
   const land = BUNDESLAENDER.find((eintrag) => eintrag.kuerzel === betrieb?.bundesland)?.name;
-  const an = BEREICHE.length - aus.length;
+  const an = BEREICHE.filter((bereich) => !aus.includes(bereich.schluessel)).length;
   const stand: Record<string, { text: string; fehlt?: boolean }> = {
     bienenhalter: betrieb?.halterName
       ? { text: [betrieb.halterName, land].filter(Boolean).join(" · ") }
@@ -61,6 +61,7 @@ export default async function EinstellungenPage() {
     email: mailKonfig
       ? { text: mailKonfig.getestetAm ? `Eingerichtet, getestet am ${mailKonfig.getestetAm.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Europe/Berlin" })}` : "Eingerichtet" }
       : { text: "Nicht eingerichtet" },
+    waagen: { text: aus.includes("waagen") ? "Ausgeschaltet" : "Eingeschaltet" },
     kalender: betrieb?.kalenderToken
       ? { text: "Adresse zum Abonnieren bereit" }
       : { text: "Erst Bienenhalter speichern", fehlt: true },

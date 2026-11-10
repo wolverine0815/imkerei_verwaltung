@@ -8,6 +8,7 @@ import { fuettererAktionAusFormular } from "@/lib/fuetterer";
 import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { standWetterWaagePruefen, volkWaageSetzen } from "@/lib/waagen";
 import { heuteAlsInputWert } from "@/lib/datum";
 import { GLEICHZEITIG_MS } from "@/lib/massnahmen-gruppen";
 import { cookies } from "next/headers";
@@ -363,11 +364,16 @@ export async function bienenstandAktualisieren(
       notizen: textOderUndefined(formData.get("notizen")),
       standtyp: standtypAusFormular(formData),
       ...fotoFelder,
+      // Das Feld gibt es nur, wenn mehrere Waagen am Stand stehen.
+      ...(formData.has("wetterWaageId")
+        ? { wetterWaageId: await standWetterWaagePruefen(bienenstandId, String(formData.get("wetterWaageId"))) }
+        : {}),
     },
   });
 
   revalidatePath("/");
   revalidatePath(`/bienenstaende/${bienenstandId}`);
+  revalidatePath("/waagen");
   redirect(`/bienenstaende/${bienenstandId}`);
 }
 
@@ -756,6 +762,8 @@ function zurueckZumStand(formData: FormData | undefined) {
 export async function volkAktualisieren(volkId: string, formData: FormData): Promise<FormularErgebnis> {
   const volk = await volkFelderAktualisieren(volkId, formData);
   if ("fehler" in volk) return volk;
+  // Das Feld gibt es nur, wenn der Bereich Waagen eingeschaltet ist.
+  if (formData.has("waageId")) await volkWaageSetzen(volkId, String(formData.get("waageId")));
   redirect(zurueckZumStand(formData) ? `/bienenstaende/${volk.bienenstandId}` : `/voelker/${volkId}`);
 }
 

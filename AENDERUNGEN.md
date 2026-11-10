@@ -14,6 +14,10 @@ So sieht ein Abschnitt aus:
 
 Neue Abschnitte kommen oben hin.
 
+## Unveröffentlicht
+
+- Neu unter Einstellungen: **Waagen**. Einmal eingeschaltet, zeigt die Stockkarte die Werte einer Wolf-Bienenstockwaage der letzten 14 Tage, dazu gibt es den Menüpunkt Waagen und je Stand die Grünlandtemperatursumme. Die Werte holt der Server selbst, stündlich, von November bis Februar einmal am Tag. Tage ohne Messung und Stände ohne Waage füllt ein Wetterdienst (Open-Meteo) auf, dafür braucht der Stand Koordinaten.
+
 ## 1.2.1
 
 - Die Anleitung beschreibt jetzt den Wabenbestand: Waben beim Anlegen eines Volkes, Nachtragen bei älteren Völkern, Waben geben und entnehmen in der Durchsicht. Mit neuen Bildern.

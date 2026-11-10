@@ -18,6 +18,7 @@ import {
 import { Card, LinkKnopf } from "@/components/ui";
 import { StandortAnzeige } from "@/components/standort-anzeige";
 import { VelutinaStandStatus } from "@/components/velutina-stand-status";
+import { GtsKarte } from "@/components/gts-karte";
 import { standLage } from "@/lib/velutina";
 import { VolkAnlegenDialog } from "@/components/volk-anlegen-dialog";
 import { VolkFotoLightbox } from "@/components/volk-foto-lightbox";
@@ -948,6 +949,8 @@ export default async function BienenstandDetailPage({
         eintragKey={eintragAnzahl}
         massnahmeKey={massnahmenAnzahl}
       />
+
+      {!aus.includes("waagen") && <GtsKarte bienenstandId={bienenstand.id} />}
 
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">

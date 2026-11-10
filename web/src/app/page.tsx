@@ -1,6 +1,7 @@
 import { massnahmenBuendeln } from "@/lib/massnahmen-buendeln";
 import { SICHTBARE_MASSNAHMEN } from "@/lib/massnahmen-sichtbar";
 import { abgeschalteteBereiche } from "@/lib/bereiche";
+import { standGtsTexte } from "@/lib/waagen";
 import { lubwLage } from "@/lib/bundeslaender";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
@@ -89,9 +90,11 @@ function standZusammenfassung(bienenstand: BienenstandMitZusammenfassung) {
 function BienenstandKachel({
   bienenstand,
   gedaempft = false,
+  gts = null,
 }: {
   bienenstand: BienenstandMitZusammenfassung;
   gedaempft?: boolean;
+  gts?: string | null;
 }) {
   const { anzahlVoelker, letzteDurchsicht, offeneMassnahmen, dringendeMassnahmen } = standZusammenfassung(bienenstand);
   const dringend = dringendeMassnahmen > 0;
@@ -147,6 +150,7 @@ function BienenstandKachel({
             {anzahlVoelker} {anzahlVoelker === 1 ? "Volk" : "Völker"}
           </p>
           {letzteDurchsicht && <p>Letzte Durchsicht: {kurzesDatum(letzteDurchsicht)}</p>}
+          {gts && <p title="Grünlandtemperatursumme">GTS: {gts}</p>}
         </div>
       </div>
 
@@ -167,7 +171,11 @@ function BienenstandKachel({
 
 // Aufbereitung für die neuen Designs (siehe start-designs.tsx): Kennzahlen
 // über alle aktiven Stände und die nächsten fälligen Maßnahmen.
-function startDaten(aktive: BienenstandMitZusammenfassung[], archivierte: BienenstandMitZusammenfassung[]) {
+function startDaten(
+  aktive: BienenstandMitZusammenfassung[],
+  archivierte: BienenstandMitZusammenfassung[],
+  gts: Map<string, string>,
+) {
   const heute = new Date();
   const stand = (b: BienenstandMitZusammenfassung): StartStand => {
     const z = standZusammenfassung(b);
@@ -177,6 +185,7 @@ function startDaten(aktive: BienenstandMitZusammenfassung[], archivierte: Bienen
       standtyp: b.standtyp,
       adresse: [b.strasse, b.ort].filter(Boolean).join(", "),
       anzahlVoelker: z.anzahlVoelker,
+      gts: gts.get(b.id) ?? null,
       letzteDurchsicht: z.letzteDurchsicht,
       offen: z.offeneMassnahmen,
       dringend: z.dringendeMassnahmen,
@@ -271,6 +280,7 @@ export default async function StartPage() {
   ]);
   const suchVoelker = suchVoelkerRoh.map((volk) => ({ id: volk.id, name: volk.name, standName: volk.bienenstand.name }));
   const neueVelutina = velutina?.imBereich.filter((meldung) => meldung.neu) ?? [];
+  const gts = aus.includes("waagen") ? new Map<string, string>() : await standGtsTexte(aktive.map((stand) => stand.id));
 
   const design = await aktuellesDesign();
   if (design !== "aktuell") {
@@ -289,7 +299,7 @@ export default async function StartPage() {
       </>
     );
     const daten: StartDaten = {
-      ...startDaten(aktive, archivierte),
+      ...startDaten(aktive, archivierte, gts),
       velutinaNeu: velutina ? neueVelutina.length : null,
       oben,
     };
@@ -337,7 +347,7 @@ export default async function StartPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {aktive.map((bienenstand) => (
-            <BienenstandKachel key={bienenstand.id} bienenstand={bienenstand} />
+            <BienenstandKachel key={bienenstand.id} bienenstand={bienenstand} gts={gts.get(bienenstand.id)} />
           ))}
         </div>
       )}

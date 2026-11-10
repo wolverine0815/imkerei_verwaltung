@@ -96,7 +96,7 @@ const SCHREIB_METHODEN = new Set([
 ]);
 
 // Einstellungen und Zugänge: auch Helfer mit Schreibrecht nicht.
-const NUR_ADMIN_MODELLE = new Set(["betrieb", "bereichswahl", "mailEinstellung", "nutzer", "testzugang", "hauptzugang"]);
+const NUR_ADMIN_MODELLE = new Set(["betrieb", "bereichswahl", "mailEinstellung", "waagenEinstellung", "nutzer", "testzugang", "hauptzugang"]);
 
 // PDF-Nachweise und Lagerlisten erstellen ist Lesen, auch wenn dabei eine
 // Datei gespeichert wird - etwa für eine Kontrolle mit "Nur lesen".

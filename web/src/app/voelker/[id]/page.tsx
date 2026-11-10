@@ -14,6 +14,8 @@ import {
 } from "@/lib/actions";
 import { DokumenteMiniListe } from "@/components/dokumente-mini-liste";
 import { Card, knopfKlassen } from "@/components/ui";
+import { WaagenKarte } from "@/components/waagen-karte";
+import { volkGtsText } from "@/lib/waagen";
 import { anzeigeFarbe, koeniginZeile, verbleibKurz, type EreignisArt } from "@/lib/koeniginnen";
 import { KoeniginUmweiselnDialog } from "@/components/koenigin-umweiseln-dialog";
 import { KoeniginStern } from "@/components/koenigin-stern";
@@ -252,6 +254,7 @@ export default async function VolkDetailPage({
 }) {
   const { id } = await params;
   const aus = await abgeschalteteBereiche();
+  const waage = aus.includes("waagen") ? null : await prisma.waage.findUnique({ where: { volkId: id } });
 
   const volk = await prisma.volk.findUnique({
     where: { id },
@@ -635,6 +638,8 @@ export default async function VolkDetailPage({
     </>
   );
 
+  const gts = aus.includes("waagen") ? null : await volkGtsText(waage, volk.bienenstandId);
+
   return (
     <div className="flex flex-col gap-6">
       <SeitenNavigation
@@ -661,7 +666,14 @@ export default async function VolkDetailPage({
             knopfKlasse="h-24 w-24 sm:h-32 sm:w-32"
           />
           <div className="flex min-w-0 flex-1 flex-col items-start gap-1.5">
-            <h1 className="text-2xl font-semibold leading-tight tracking-tight">{volk.name}</h1>
+            <div className="flex w-full flex-wrap items-baseline justify-between gap-x-3">
+              <h1 className="text-2xl font-semibold leading-tight tracking-tight">{volk.name}</h1>
+              {gts && (
+                <span title="Grünlandtemperatursumme" className="text-sm font-semibold whitespace-nowrap text-muted">
+                  GTS {gts}
+                </span>
+              )}
+            </div>
             <div className="flex flex-wrap gap-1.5">
               <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusInfo.farbe}`}>
                 {statusInfo.label}
@@ -788,6 +800,8 @@ export default async function VolkDetailPage({
             </div>
           </details>
         ))}
+
+      {waage && <WaagenKarte waage={waage} />}
 
       {/* Nur sichtbar, wenn tatsächlich Dokumente mit diesem Volk verknüpft
           sind - sonst würde jedes Volk eine leere Karte zeigen. Hochgeladen

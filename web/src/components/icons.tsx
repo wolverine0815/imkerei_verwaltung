@@ -316,6 +316,15 @@ export function IconLager({ className }: IconProps) {
   );
 }
 
+export function IconAuge({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
+      <path d="M1.8 10S4.8 4.5 10 4.5 18.2 10 18.2 10 15.2 15.5 10 15.5 1.8 10 1.8 10Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+      <circle cx="10" cy="10" r="2.4" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
 export function IconListe({ className }: IconProps) {
   return (
     <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">

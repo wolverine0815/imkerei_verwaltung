@@ -100,6 +100,7 @@ th { color: var(--muted); font-weight: 600; font-size: 13.5px; }
     <li><a href="#lager">Lager</a></li>
     <li><a href="#qr">QR-Codes &amp; Scannen</a></li>
     <li><a href="#velutina">Velutina</a></li>
+    <li><a href="#waagen">Waagen</a></li>
     <li><a href="#einstellungen">Einstellungen</a></li>
     <li><a href="#fragen">Tipps &amp; Fragen</a></li>
   </ol>
@@ -168,6 +169,7 @@ th { color: var(--muted); font-weight: 600; font-size: 13.5px; }
   <tr><td><strong>Scannen</strong></td><td>QR-Code an der Beute scannen und direkt die richtige Stockkarte öffnen.</td></tr>
   <tr><td><strong>Maßnahmen</strong></td><td>Alles, was zu tun ist, über alle Völker hinweg, als Liste und als Monatskalender. Die rote Zahl zeigt, was heute fällig oder überfällig ist.</td></tr>
   <tr><td><strong>Königinnen</strong></td><td>Bestand mit Abstammung (Mutter- und Vaterseite), Begattung, Lebenslauf und Bewertung, dazu die Zuchtplanung.</td></tr>
+  <tr><td><strong>Waagen</strong></td><td>Bienenstockwaagen von Wolf: Verlauf und Vergleich der Waagen, Grünlandtemperatursumme je Stand. Erscheint erst, wenn du den Bereich unter <em>Einstellungen → Waagen</em> einschaltest.</td></tr>
   <tr><td><strong>Behandlungen</strong></td><td>Bestandsbuch für Tierarzneimittel, mit Nachweis als PDF. Dazu Verfahren ohne Medikament wie TBE oder Bannwabe, mit Fahrplan.</td></tr>
   <tr><td><strong>Dokumente</strong></td><td>Rechnungen, Gesundheitszeugnisse usw., auf Wunsch mit Stand, Volk oder Königin verknüpft und per E-Mail versendbar.</td></tr>
   <tr><td><strong>Lager</strong></td><td>Material (Zargen, Klimadeckel, Mittelwände, Futter) und Erzeugnisse (Honig, Wachs …), auf Wunsch mit Warenwert. Bestandslisten und Buchungen als PDF.</td></tr>
@@ -551,13 +553,55 @@ th { color: var(--muted); font-weight: 600; font-size: 13.5px; }
 </section>
 
 <!-- 15 -->
+<section id="waagen">
+<h2><span class="nr">15</span>Waagen</h2>
+<p>Steht ein Volk auf einer <strong>Bienenstockwaage von Wolf</strong>, zeigt die Stockkarte Gewicht, Wetter und die Änderung je Stunde. Für jeden Stand rechnet die App die <strong>Grünlandtemperatursumme</strong> (GTS) aus. Der Bereich ist von Haus aus ausgeschaltet.</p>
+<h3>Einschalten und Waagen anlegen</h3>
+<ol>
+  <li>Unter <em>Einstellungen → Waagen</em> (nur der Hauptzugang) den Haken <em>Bereich Waagen einschalten</em> setzen und den Benutzernamen und das Passwort deines Wolf-Kontos eintragen. Das Passwort wird verschlüsselt gespeichert und danach nicht mehr angezeigt; ein leeres Feld behält das gespeicherte. <span class="knopf">Speichern</span>.</li>
+  <li>Unter <em>Deine Waagen</em> jede Waage mit ihrer <strong>Waagen-ID</strong> anlegen. Die ID steht in der Adresse der Wolf-Seite, z.&nbsp;B. <code>G2MJ0V</code>, und ist nicht die Seriennummer. Einen Namen kannst du dazu vergeben und später ändern.</li>
+  <li>Beim Volk unter <span class="knopf">Bearbeiten</span> im Feld <em>Waage</em> die passende Waage wählen. Eine Waage hängt immer an einem Volk; wählst du sie bei einem anderen Volk, wechselt sie dorthin. Ihre Messwerte bleiben dabei erhalten.</li>
+</ol>
+<p>Die App holt die Werte selbst bei Wolf ab: stündlich, von November bis Februar einmal am Tag. Mit <span class="knopf">Jetzt abrufen</span> unter <em>Einstellungen → Waagen</em> geht es sofort, darunter steht, wann der letzte Abruf geklappt hat. Die Werte je Stunde bleiben 14 Tage, ein Wert je Tag bleibt dauerhaft.</p>
+<div class="hinweis">
+  <strong>Gut zu wissen</strong>
+  Die App nutzt dieselbe Schnittstelle wie die Wolf-Website, keine offizielle Schnittstelle. Ändert Wolf seine Seite, kann der Abruf ausfallen, die Meldung steht dann unter <em>Einstellungen → Waagen</em>.
+</div>
+<h3>Die Waage in der Stockkarte</h3>
+<p>Auf der Seite des Volkes steht die Karte der Waage: aktuelles Gewicht, Änderung in den letzten 24 Stunden und das Diagramm.</p>
+<ul>
+  <li><strong>Oben:</strong> Temperatur (Achse links), Luftfeuchte (Achse rechts) und Regen als Balken.</li>
+  <li><strong>Unten:</strong> die Gewichtsänderung je Stunde als Balken und ihre Summe ab dem linken Rand als Linie. Unten im Diagramm steht je Tag, um wie viel sich das Gewicht an diesem Tag geändert hat. Die Waage gleicht das Arbeiten am Volk aus, deshalb zählt die Änderung mehr als das Gesamtgewicht.</li>
+  <li><strong>Legende:</strong> Das Auge oben rechts blendet sie ein und aus. Sie zeigt die Werte der Stunde unter dem Finger oder der Maus und weicht in die Ecke gegenüber aus. Am Handy ist sie zunächst aus.</li>
+  <li><strong>Zeitraum:</strong> Zu sehen sind 7 Tage, am Handy 3. Ziehen nach rechts holt ältere Tage ins Bild, die Knöpfe <span class="knopf">Einen Tag zurück</span>, <span class="knopf">Einen Tag vor</span> und <span class="knopf">Neueste</span> tun dasselbe.</li>
+  <li><strong>Tageswerte als Tabelle:</strong> aufklappbar unter dem Diagramm.</li>
+</ul>
+<h3>Grünlandtemperatursumme</h3>
+<p>Die GTS summiert ab dem 1. Januar die positiven Tagesmittel der Lufttemperatur, im Januar zur Hälfte, im Februar zu drei Vierteln, danach voll. Sie steht in der Stockansicht neben dem Namen des Volkes, auf der Seite des Stands in einer eigenen Karte und in der Übersicht der Bienenstände. Die Karte nennt auch den Tag, an dem 350 Grad erreicht waren.</p>
+<ul>
+  <li><strong>Grundlage</strong> sind die Messungen der Waage. Stehen mehrere Waagen an einem Stand, wählst du beim Stand unter <span class="knopf">Bearbeiten</span> im Feld <em>Waage für die GTS</em>, welche zählt.</li>
+  <li><strong>Fehlende Tage</strong>, etwa weil eine Waage erst im Herbst dazukam, ergänzt die App mit Wetterdaten von Open-Meteo für die Koordinaten des Stands. Die Karte sagt dann, wie viele Tage von der Waage und wie viele vom Wetterdienst stammen. So bekommen auch Stände ganz ohne Waage eine GTS. Dafür braucht der Stand Koordinaten (Karte beim Stand), und die Koordinaten gehen an Open-Meteo.</li>
+  <li>Die Wetterdaten sind Modellwerte und können vom Wetter direkt am Stand abweichen.</li>
+</ul>
+<h3>Die Seite Waagen</h3>
+<p>Der Menüpunkt <em>Waagen</em> erscheint, sobald der Bereich eingeschaltet ist. Oben wählst du <span class="knopf">Eine Waage</span>, <span class="knopf">Zwei Waagen</span> oder <span class="knopf">Viele Waagen</span>, darunter tippst du die Waagen an, die du sehen willst.</p>
+<ul>
+  <li><strong>Eine Waage:</strong> dasselbe Diagramm wie in der Stockkarte.</li>
+  <li><strong>Zwei Waagen:</strong> beide in einem Diagramm, Waage A durchgezogen, Waage B gestrichelt und in eigenen Farben. Die Änderung je Tag steht dann in der Legende.</li>
+  <li><strong>Viele Waagen:</strong> nur das Gewicht von bis zu sechs Waagen, aus den Tageswerten, wahlweise für einen Monat, drei Monate oder alles.</li>
+</ul>
+<p>Darunter folgt für jeden Stand mit Waage die GTS-Karte.</p>
+</section>
+
+<!-- 16 -->
 <section id="einstellungen">
-<h2><span class="nr">15</span>Einstellungen im Überblick</h2>
+<h2><span class="nr">16</span>Einstellungen im Überblick</h2>
 <p>Die Einstellungen sind in vier Gruppen sortiert: <em>Betrieb</em>, <em>Ausstattung</em>, <em>Verbindungen</em> und (nur beim Inhaber) <em>Nur für dich</em>. Am Handy siehst du sie als Liste, jede Zeile zeigt kurz, wie es steht. Tippen öffnet den Punkt, <span class="knopf">← Zurück</span> führt wieder zur Liste. Am PC und am iPad quer stehen alle Punkte links in einer Spalte, rechts der geöffnete Punkt.</p>
 <ul>
   <li><strong>Bienenhalter:</strong> Name, Anschrift, Bundesland, Telefon, E-Mail, Registriernummer, für den Behandlungsnachweis und die Hornissen-Meldungen. Dazu <em>Name im Menü</em> (höchstens 30 Zeichen), leer steht dort „Imkereiverwaltung“.</li>
   <li><strong>Bereiche:</strong> Schalter für Scannen, Königinnen (mit Zucht), Behandlungen, Dokumente, Lager und Velutina. Was du ausschaltest, verschwindet aus Menü und Seiten; die Daten bleiben und sind nach dem Einschalten wieder da. Bienenstände, Maßnahmen und Einstellungen sind immer an.</li>
   <li><strong>Design:</strong> wie die App aussieht. <em>Wiese</em> hell in Grün und Honiggelb mit Seitenleiste, <em>Wald</em> warm in Waldgrün und Honig mit Leiste unten am Handy, <em>Bergsee</em> kühl in Petrol mit dunklem Band oben. Die Wahl gilt nur auf dem Gerät, auf dem du sie triffst. Hell und dunkel stellst du im Menü um.</li>
+  <li><strong>Waagen:</strong> Bereich Waagen einschalten, Wolf-Zugang, Waagen anlegen und umbenennen, <span class="knopf">Jetzt abrufen</span>, siehe <a href="#waagen">Waagen</a>. Anders als die übrigen Bereiche ist er von Haus aus aus.</li>
   <li><strong>E-Mail-Versand:</strong> dein Postfach für den Versand von Dokumenten und Hornissen-Warnungen. <span class="knopf">Speichern und Testmail senden</span> prüft die Angaben. Das <em>i</em> neben der Überschrift erklärt, welche Angaben Gmail, GMX, WEB.DE, T-Online, iCloud und Outlook brauchen (bei Gmail ein eigenes App-Passwort).</li>
   <li><strong>Beutensysteme:</strong> Zargen für Bruträume und Honigräume, siehe <a href="#beispiel">Erste Schritte</a>.</li>
   <li><strong>Belegstellen:</strong> einmal anlegen (Ort, Rasse), dann bei Königinnen und Zuchtserien auswählbar. Weil die Drohnenvölker jedes Jahr wechseln, führt jede Belegstelle eine Liste <em>Drohnenvölker je Jahr</em>. Mit <span class="knopf">Jahr eintragen</span> kommt ein Jahr dazu, aufgeklappt änderst oder entfernst du es. Die Liste zeigt auch, wie viele Königinnen je Jahr dort begattet wurden.</li>
@@ -578,9 +622,9 @@ th { color: var(--muted); font-weight: 600; font-size: 13.5px; }
 </div>
 </section>
 
-<!-- 16 -->
+<!-- 17 -->
 <section id="fragen">
-<h2><span class="nr">16</span>Tipps und häufige Fragen</h2>
+<h2><span class="nr">17</span>Tipps und häufige Fragen</h2>
 <h3>Muss ich jede Durchsicht vollständig ausfüllen?</h3>
 <p>Nein. Trag ein, was du gesehen hast, alles andere bleibt leer. Eine Durchsicht mit nur einer Notiz ist völlig in Ordnung.</p>
 <h3>Ich habe alle Völker eines Stands gefüttert. Muss ich das für jedes Volk eintragen?</h3>

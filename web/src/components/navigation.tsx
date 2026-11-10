@@ -17,6 +17,7 @@ import {
   IconLogo,
   IconQrCode,
   IconHornisse,
+  IconWaage,
   IconAnleitung,
   IconWabenrahmen,
   IconHonigglas,
@@ -90,6 +91,13 @@ export function navItems(faellig: number, velutina: number, aus: readonly string
       label: "Königinnen",
       icon: IconKrone,
       istAktiv: (pfad) => pfad.startsWith("/koeniginnen") && !pfad.startsWith("/koeniginnen/zuchtkarten"),
+    },
+    {
+      href: "/waagen",
+      bereich: "waagen",
+      label: "Waagen",
+      icon: IconWaage,
+      istAktiv: (pfad) => pfad.startsWith("/waagen"),
     },
     {
       href: "/behandlungen",
