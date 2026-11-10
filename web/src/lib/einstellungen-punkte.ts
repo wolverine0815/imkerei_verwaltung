@@ -4,6 +4,7 @@ import {
   IconKacheln,
   IconKalender,
   IconLager,
+  IconListe,
   IconPalette,
   IconDesign,
   IconPerson,
@@ -69,6 +70,7 @@ export const EINSTELLUNGS_GRUPPEN: EinstellungsGruppe[] = [
     nurAdmin: true,
     punkte: [
       { schluessel: "helfer", href: "/einstellungen/helfer", label: "Helfer", icon: IconPerson, nurAdmin: true },
+      { schluessel: "import", href: "/einstellungen/import", label: "Import", icon: IconListe, nurAdmin: true },
       { schluessel: "historie", href: "/einstellungen/historie", label: "Historie", icon: IconVerlauf, nurAdmin: true },
       { schluessel: "system", href: "/einstellungen/system", label: "System", icon: IconAktualisieren, nurAdmin: true },
       { schluessel: "testzugaenge", href: "/einstellungen/testzugaenge", label: "Testzugänge", icon: IconPersonen, nurAdmin: true, nurEntwickler: true },

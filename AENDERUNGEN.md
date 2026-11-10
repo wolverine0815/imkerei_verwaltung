@@ -14,6 +14,10 @@ So sieht ein Abschnitt aus:
 
 Neue Abschnitte kommen oben hin.
 
+## Unveröffentlicht
+
+- Neu unter Einstellungen: **Import aus BeeInTouch**. Du lädst die Stockkarten als PDF hoch (eine je Volk), siehst vorab, was angelegt wird, und die App übernimmt Durchschauen, Fütterungen, Behandlungen, Honigernten, Varroakontrollen und auf Wunsch die Königin. Die Einträge lassen sich einem Helfer zuschreiben. Derselbe Import lässt sich gefahrlos wiederholen, nichts wird doppelt angelegt.
+
 ## 1.2.1
 
 - Die Anleitung beschreibt jetzt den Wabenbestand: Waben beim Anlegen eines Volkes, Nachtragen bei älteren Völkern, Waben geben und entnehmen in der Durchsicht. Mit neuen Bildern.
