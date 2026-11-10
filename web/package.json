@@ -14,7 +14,7 @@
     "@react-pdf/renderer": "^4.9.0",
     "jsqr": "^1.4.0",
     "leaflet": "^1.9.4",
-    "next": "16.3.8",
+    "next": "16.4.6",
     "nodemailer": "^10.1.0",
     "pdfjs-dist": "^6.4.299",
     "pg": "^8.23.0",
@@ -34,7 +34,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.8",
+    "eslint-config-next": "16.4.6",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

@@ -14,6 +14,10 @@ So sieht ein Abschnitt aus:
 
 Neue Abschnitte kommen oben hin.
 
+## Unveröffentlicht
+
+- Sicherheitsupdate: Next.js 16.4.6 statt 16.3.8, dazu neuere Fassungen von Nodemailer und zwei Hilfspaketen. Next.js 16.3.8 hatte Lücken, über die sich die App ohne Anmeldung angreifen ließ.
+
 ## 1.2.1
 
 - Die Anleitung beschreibt jetzt den Wabenbestand: Waben beim Anlegen eines Volkes, Nachtragen bei älteren Völkern, Waben geben und entnehmen in der Durchsicht. Mit neuen Bildern.
